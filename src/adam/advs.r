@@ -153,7 +153,7 @@ advs_eot <- advs_avisit %>%
     filter_add = (AVISITN > 2),
     set_values_to = exprs(
       AVISIT = "End of Treatment",
-      AVISITN = 99,
+      AVISITN = 99
     )
   )
 
@@ -181,6 +181,7 @@ advs_anl01fl <- advs_baseline %>%
     )
   )
 
+# Sort the data
 sort_order <- advs_anl01fl %>%
   select(USUBJID, PARAMCD, ATPTN, VISITNUM, AVISIT, VSSEQ) %>%
   colnames()
