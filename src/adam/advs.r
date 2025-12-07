@@ -93,7 +93,7 @@ param_lookup <- tribble(
   "PULSE",   "PULSE",  "Pulse Rate (beats/min)",             3,
   "WEIGHT",  "WEIGHT", "Weight (kg)",                        4,
   "HEIGHT",  "HEIGHT", "Height (cm)",                        5,
-  "TEMP",    "TEMP",   "Temperature (C)",                    6,
+  "TEMP",    "TEMP",   "Temperature (C)",                    6
 )
 
 advs_param <- advs_dt %>%
@@ -193,7 +193,7 @@ advs_sorted <- advs_anl01fl %>%
 # EXPORT
 # ----------------------------------------------------------------------------
 
-# Load define.xml metadata;
+# Load define.xml metadata
 advs_spec <- define_to_metacore(
   file.path(path$adam, "define.xml"),
   quiet = TRUE
