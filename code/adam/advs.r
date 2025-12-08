@@ -23,6 +23,63 @@ library(datasetjson)  # Dataset JSON handling
 library(metacore)     # Metadata handling
 
 # ----------------------------------------------------------------------------
+# LOAD METADATA
+# ----------------------------------------------------------------------------
+
+# Load define.xml metadata
+advs_spec <- define_to_metacore(
+  file.path(path$adam, "define.xml"),
+  quiet = TRUE
+) %>%
+  select_dataset("ADVS")
+
+# Tibbles with codelists
+atpt_codelist <- advs_spec$codelist %>%
+  filter(code_id == "CL.ADVS.ATPTN") %>%
+  pull(codes) %>%
+  pluck(1) %>%
+  select(code, decode) %>%
+  mutate(
+    code = str_trim(code),
+    code = as.integer((code))
+  ) %>%
+  rename(ATPTN = code, ATPT = decode)
+
+avisit_codelist <- advs_spec$codelist %>%
+  filter(code_id == "CL.ADVS.AVISITN") %>%
+  pull(codes) %>%
+  pluck(1) %>%
+  select(code, decode) %>%
+  mutate(
+    code = str_trim(code),
+    code = as.integer((code))
+  ) %>%
+  rename(AVISITN = code, AVISIT = decode)
+
+paramcd_codelist <- advs_spec$codelist %>%
+  filter(code_id == "CL.PARAMCD_ADVS") %>%
+  pull(codes) %>%
+  pluck(1) %>%
+  select(code, decode) %>%
+  rename(PARAMCD = code, PARAM = decode)
+
+paramn_codelist <- advs_spec$codelist %>%
+  filter(code_id == "CL.PARAMN_ADVS") %>%
+  pull(codes) %>%
+  pluck(1) %>%
+  select(code, decode) %>%
+  mutate(
+    code = str_trim(code),
+    code = as.integer((code))
+  ) %>%
+  rename(PARAMN = code, PARAM = decode)
+
+param_lookup <- paramcd_codelist %>%
+  inner_join(paramn_codelist, by = "PARAM") %>%
+  select(PARAMCD, PARAM, PARAMN) %>%
+  mutate(VSTESTCD = PARAMCD)
+
+# ----------------------------------------------------------------------------
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 
@@ -85,17 +142,6 @@ advs_dt <- advs_adsl %>%
   )
 
 ## Derive Parameters (PARAMCD, PARAM, PARAMN)
-# Create a lookup table for parameters
-param_lookup <- tribble(
-  ~VSTESTCD, ~PARAMCD, ~PARAM,                               ~PARAMN,
-  "SYSBP",   "SYSBP",  "Systolic Blood Pressure (mmHg)",     1,
-  "DIABP",   "DIABP",  "Diastolic Blood Pressure (mmHg)",    2,
-  "PULSE",   "PULSE",  "Pulse Rate (beats/min)",             3,
-  "WEIGHT",  "WEIGHT", "Weight (kg)",                        4,
-  "HEIGHT",  "HEIGHT", "Height (cm)",                        5,
-  "TEMP",    "TEMP",   "Temperature (C)",                    6
-)
-
 advs_param <- advs_dt %>%
   inner_join(param_lookup, by = "VSTESTCD")
 
@@ -104,36 +150,12 @@ advs_aval <- advs_param %>%
   mutate(AVAL = VSSTRESN)
 
 ## Derive Analysis Timepoints (ATPT, ATPTN)
-atpt_lookup <- tribble(
-  ~ATPT,                              ~ATPTN,
-  "AFTER LYING DOWN FOR 5 MINUTES",   815,
-  "AFTER STANDING FOR 1 MINUTE",      816,
-  "AFTER STANDING FOR 3 MINUTES",     817,
-  NA,                                NA_real_
-)
-
 advs_atpt <- advs_aval %>%
   mutate(ATPT = VSTPT) %>%
-  left_join(atpt_lookup, by = "ATPT")
+  left_join(atpt_codelist, by = "ATPT")
 
 ## Derive Analysis Visits (AVISIT, AVISITN)
 # Lookup table for visits
-avisit_lookup <- tribble(
-  ~AVISIT,            ~AVISITN,
-  "Baseline",         0,
-  "Week 2",           2,
-  "Week 4",           4,
-  "Week 6",           6,
-  "Week 8",           8,
-  "Week 12",          12,
-  "Week 16",          16,
-  "Week 20",          20,
-  "Week 24",          24,
-  "Week 26",          26,
-  "End of Treatment", 99,
-  NA,                NA_real_
-)
-
 advs_avisit <- advs_atpt %>%
   mutate(
     AVISIT = case_when(
@@ -141,7 +163,7 @@ advs_avisit <- advs_atpt %>%
       TRUE ~ str_to_title(VISIT)
     )
   ) %>%
-  left_join(avisit_lookup, by = "AVISIT")
+  left_join(avisit_codelist, by = "AVISIT")
 
 # Derive end of treatment visit
 advs_eot <- advs_avisit %>%
@@ -192,13 +214,6 @@ advs_sorted <- advs_anl01fl %>%
 # ----------------------------------------------------------------------------
 # EXPORT
 # ----------------------------------------------------------------------------
-
-# Load define.xml metadata
-advs_spec <- define_to_metacore(
-  file.path(path$adam, "define.xml"),
-  quiet = TRUE
-) %>%
-  select_dataset("ADVS")
 
 # Select variables as per spec
 advs_final <- advs_sorted %>%
