@@ -1,3 +1,9 @@
+# Study Metadata ----------------------------------------------------------
+study <- list(
+  name = "Pilot 6",
+  originator = "R Submission Pilot 6"
+)
+
 # File locations ----------------------------------------------------------
 path <- list(
   sdtm = file.path(getwd(), "data/sdtm/"),

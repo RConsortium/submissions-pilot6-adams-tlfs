@@ -19,8 +19,10 @@ library(haven)        # Reading/writing SAS datasets
 library(stringr)      # String manipulation
 library(purrr)        # Functional programming
 library(tibble)       # Creating tibbles
-library(datasetjson)  # Dataset JSON handling
 library(metacore)     # Metadata handling
+
+# Import utility functions
+source(file.path("code", "utils", "save_dataset_json.r"))
 
 # ----------------------------------------------------------------------------
 # LOAD METADATA
@@ -215,56 +217,8 @@ advs_sorted <- advs_anl01fl %>%
 # EXPORT
 # ----------------------------------------------------------------------------
 
-# Select variables as per spec
-advs_final <- advs_sorted %>%
-  select(
-    advs_spec$ds_vars$variable
-  )
-
-# Prepare column metadata
-oid_cols <- advs_spec$ds_vars %>%
-  select(dataset, variable, key_seq) %>%
-  left_join(advs_spec$var_spec, by = c("variable")) %>%
-  rename(name = variable, dataType = type, keySequence = key_seq, displayFormat = format) %>%
-  mutate(itemOID = paste0("IT.", dataset, ".", name)) %>%
-  select(itemOID, name, label, dataType, length, keySequence, displayFormat) %>%
-  mutate(
-    dataType =
-      case_when(
-        displayFormat == "DATE9." ~ "date",
-        displayFormat == "DATETIME20." ~ "datetime",
-        substr(name, nchar(name) - 3 + 1, nchar(name)) == "DTC" & length == "8" ~ "date",
-        substr(name, nchar(name) - 3 + 1, nchar(name)) == "DTC" & length == "20" ~ "datetime",
-        dataType == "text" ~ "string",
-        .default = as.character(dataType)
-      ),
-    targetDataType =
-      case_when(
-        displayFormat == "DATE9." ~ "integer",
-        displayFormat == "DATETIME20." ~ "integer",
-        .default = NA
-      ),
-    length = case_when(
-      dataType == "string" ~ length,
-      .default = NA
-    )
-  ) %>%
-  data.frame()
-
-# Create and write dataset JSON
-dataset_json(advs_final,
-  last_modified = strftime(as.POSIXlt(Sys.time(), "UTC"), "%Y-%m-%dT%H:%M"),
-  originator = "R Submission Pilot 6",
-  sys = paste0("R on ", R.Version()$os, " ", unname(Sys.info())[[2]]),
-  sys_version = R.Version()$version.string,
-  version = "1.1.0",
-  study = "Pilot 6",
-  metadata_version = "MDV.TDF_ADaM.ADaM-IG.1.1", # from define
-  metadata_ref = file.path(path$adam, "define.xml"),
-  item_oid = paste0("IG.ADVS"),
-  name = "ADVS",
-  dataset_label = advs_spec$ds_spec[["label"]],
-  file_oid = file.path(path$adam, "advs.json"),
-  columns = oid_cols
-) %>%
-  write_dataset_json(file = file.path(path$adam, "advs.json"), float_as_decimals = FALSE)
+save_dataset_json(
+  output_dir = path$adam,
+  dataset = advs_sorted,
+  ds_spec = advs_spec
+)
