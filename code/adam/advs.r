@@ -4,7 +4,7 @@
 # Description: Derives analysis variables for vital signs data including
 #              change from baseline, analysis flags, and parameter mappings.
 # Input: SDTM domains (VS), ADaM (ADSL)
-# Output: advs.xpt
+# Output: advs.json
 # ============================================================================
 
 # ----------------------------------------------------------------------------
@@ -30,7 +30,7 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 
 # Load define.xml metadata
 advs_spec <- define_to_metacore(
-  file.path(path$adam, "define.xml"),
+  path$define_path,
   quiet = TRUE
 ) %>%
   select_dataset("ADVS")
