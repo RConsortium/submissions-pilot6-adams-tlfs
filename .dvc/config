@@ -1,0 +1,4 @@
+[core]
+    remote = demo-s3
+['remote "demo-s3"']
+    url = s3://rconsortium-dvc-demo
