@@ -73,28 +73,17 @@ param_lookup <- paramcd_codelist %>%
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 
-# Define data to load
-data_to_load_xpt <- list(
-  lb = file.path(path$sdtm, "lb.xpt")
+# Load SDTM datasets
+walk(
+  c(lb = file.path(path$sdtm, "lb.xpt")),
+  ~ assign(names(.x), read_xpt(.x), envir = .GlobalEnv)
 )
 
-data_to_load_json <- list(
-  adsl = file.path(path$adam, "adsl.json")
+# Load ADaM datasets
+walk(
+  c(adsl = file.path(path$adam, "adsl.json")),
+  ~ assign(names(.x), read_dataset_json(.x), envir = .GlobalEnv)
 )
-
-# Load datasets using map and convert blanks to NA
-datasets_xpt <- map(
-  data_to_load_xpt,
-  ~ convert_blanks_to_na(read_xpt(.x))
-)
-
-datasets_json <- map(
-  data_to_load_json,
-  ~ convert_blanks_to_na(read_dataset_json(.x))
-)
-
-# Put datasets into the global environment
-list2env(c(datasets_xpt, datasets_json), envir = .GlobalEnv)
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS
