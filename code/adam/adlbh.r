@@ -236,31 +236,31 @@ adlbh_toxicity <- adlbh_anl01fl %>%
   mutate(
     ATOXGR = case_when(
       # Hemoglobin (g/dL)
-      PARAMCD == "HGB" & !is.na(AVAL) & AVAL >= ANRLO ~ "0",
+      PARAMCD == "HGB" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
       PARAMCD == "HGB" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 10.0 ~ "1",
       PARAMCD == "HGB" & !is.na(AVAL) & AVAL < 10.0 & AVAL >= 8.0 ~ "2",
       PARAMCD == "HGB" & !is.na(AVAL) & AVAL < 8.0 & AVAL >= 6.5 ~ "3",
       PARAMCD == "HGB" & !is.na(AVAL) & AVAL < 6.5 ~ "4",
       # Leukocytes (10^9/L)
-      PARAMCD == "WBC" & !is.na(AVAL) & AVAL >= ANRLO ~ "0",
+      PARAMCD == "WBC" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
       PARAMCD == "WBC" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 3.0 ~ "1",
       PARAMCD == "WBC" & !is.na(AVAL) & AVAL < 3.0 & AVAL >= 2.0 ~ "2",
       PARAMCD == "WBC" & !is.na(AVAL) & AVAL < 2.0 & AVAL >= 1.0 ~ "3",
       PARAMCD == "WBC" & !is.na(AVAL) & AVAL < 1.0 ~ "4",
       # Platelets (10^9/L)
-      PARAMCD == "PLAT" & !is.na(AVAL) & AVAL >= ANRLO ~ "0",
+      PARAMCD == "PLAT" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
       PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 75.0 ~ "1",
       PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < 75.0 & AVAL >= 50.0 ~ "2",
       PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < 50.0 & AVAL >= 25.0 ~ "3",
       PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < 25.0 ~ "4",
       # Neutrophils (10^9/L)
-      PARAMCD == "NEUT" & !is.na(AVAL) & AVAL >= ANRLO ~ "0",
+      PARAMCD == "NEUT" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
       PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 1.5 ~ "1",
       PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < 1.5 & AVAL >= 1.0 ~ "2",
       PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < 1.0 & AVAL >= 0.5 ~ "3",
       PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < 0.5 ~ "4",
       # Lymphocytes (10^9/L)
-      PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL >= ANRLO ~ "0",
+      PARAMCD == "LYMPH" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
       PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 0.8 ~ "1",
       PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < 0.8 & AVAL >= 0.5 ~ "2",
       PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < 0.5 & AVAL >= 0.2 ~ "3",
