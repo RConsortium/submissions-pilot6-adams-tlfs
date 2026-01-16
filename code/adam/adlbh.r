@@ -5,7 +5,7 @@
 #              including change from baseline, analysis flags, and parameter
 #              mappings. Includes normal range indicators and shift analysis.
 # Input: SDTM domains (LB), ADaM (ADSL)
-# Output: adlbh.xpt
+# Output: adlbh.json
 # ============================================================================
 
 # ----------------------------------------------------------------------------
