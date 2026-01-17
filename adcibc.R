@@ -1,42 +1,74 @@
-# Setup -----------------
-## Load libraries -------
-library(dplyr)
-library(tidyr)
-library(admiral)
-library(metacore)
-library(metatools)
-library(stringr)
-library(purrr)
-library(metacore)
+# ============================================================================
+# Program: adcibc.R
+# Purpose: Create ADaM CIBIC+ Analysis Dataset (ADQSCIBC)
+# Description: Derives analysis variables for CIBIC+ Dataset.
+# Input: SDTM domains (QS), ADaM (ADSL)
+# Output: adcibc.json
+# ============================================================================
 
-path <- list(sdtm = "~/submissions-pilot5-datasetjson/pilot5-submission/pilot5-input/sdtmdata/",
-             adam = "~/submissions-pilot5-datasetjson/pilot5-submission/pilot5-input/adamdata/")
+# ----------------------------------------------------------------------------
+# SETUP AND LIBRARY LOADING
+# ----------------------------------------------------------------------------
 
-## Load datasets ------------
-dat_to_load <- list(
-  qs = file.path(path$sdtm, "qs.rds"),
-  adsl = file.path(path$adam, "adsl.rds")
-)
+# Load required packages
+library(admiral)      # ADaM derivations
+library(dplyr)        # Data manipulation
+library(lubridate)    # Date handling
+library(haven)        # Reading/writing SAS datasets
+library(stringr)      # String manipulation
+library(purrr)        # Functional programming
+library(tibble)       # Creating tibbles
+library(datasetjson)  # Dataset JSON handling
+library(metacore)     # Metadata handling
+library(xportr)
 
-datasets <- map(
-  dat_to_load,
-  ~ convert_blanks_to_na(readRDS(.x))
-)
-
-list2env(datasets, envir = .GlobalEnv)
-
-## Load dataset specs -----------
+# ----------------------------------------------------------------------------
+# LOAD METADATA
+# ----------------------------------------------------------------------------
 adcibc_spec <- define_to_metacore(
   file.path("~/Downloads", "define.xml"),
   quiet = TRUE
 ) %>%
   select_dataset("ADCIBC")
 
+# ----------------------------------------------------------------------------
+# LOAD DATASETS
+# ----------------------------------------------------------------------------
+# Define data to load
+data_to_load_rds <- list(
+  adsl = file.path(path$adam, "adsl.rds")
+)
+
+data_to_load_json <- list(
+  qs = file.path(path$sdtm, "qs.json")
+)
+
+# Load datasets using map and convert blanks to NA
+datasets_rds <- map(
+  data_to_load_rds,
+  ~ convert_blanks_to_na(readRDS(.x))
+)
+
+datasets_json <- map(
+  data_to_load_json,
+  ~ convert_blanks_to_na(read_dataset_json(.x))
+)
+
+# Put datasets into the global environment
+list2env(c(datasets_rds, datasets_json), envir = .GlobalEnv)
+
+# ----------------------------------------------------------------------------
+# DERIVATIONS
+# ----------------------------------------------------------------------------
+
 # filter QS domain for qstestcd = CIBIC
 adcibc00 <- qs %>%
   filter(QSTESTCD == "CIBIC") %>%
   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN,
-         QSSEQ)
+         QSSEQ) %>%
+  mutate(VISITNUM = as.numeric(VISITNUM),
+         QSSTRESN = as.numeric(QSSTRESN),
+         QSSEQ = as.numeric(QSSEQ))
 
 ## ADSL information ----------------------------------------------
 adsl_vars <- exprs(
@@ -69,7 +101,7 @@ adcibc1 <- adcibc00 %>%
   rename(TRTP = TRT01P,
          TRTPN = TRT01PN)
 
-# derive dates ------------
+# Derive dates -----------------------------------------------
 # derive ADT and ADY
 adcibc2 <- adcibc1 %>%
   derive_vars_dt(new_vars_prefix = "A",
@@ -77,7 +109,7 @@ adcibc2 <- adcibc1 %>%
   derive_vars_dy(reference_date = TRTSDT,
                  source_vars = exprs(ADT))
 
-## Derive AVISIT, AVAL, PARAM, AVISITN, PARAMN ----------
+## Derive AVISIT, AVAL, PARAM, AVISITN, PARAMN -------------------
 adcibc3 <- adcibc2 %>%
   mutate(
     AVISIT = case_when(
@@ -94,7 +126,7 @@ adcibc3 <- adcibc2 %>%
   create_var_from_codelist(adcibc_spec, PARAM, PARAMN) %>%
   create_var_from_codelist(adcibc_spec, PARAM, PARAMCD)
 
-## Derive AWRANGE, AWTARGET, AWTDIFF, AWLO, AWHI, AWU -----------
+## Derive AWRANGE, AWTARGET, AWTDIFF, AWLO, AWHI, AWU ----------------
 aw_lookup <- tribble(
   ~AVISIT, ~AWRANGE, ~AWTARGET, ~AWLO, ~AWHI,
   "Baseline", "<=1", 1, NA_integer_, 1,
@@ -113,7 +145,7 @@ adcibc4 <- derive_vars_merged(
     AWU = "DAYS"
   )
 
-## Derive ANL01FL -----------
+## Derive ANL01FL ----------------------------------------
 adcibc5 <- adcibc4 %>%
   mutate(diff = AWTARGET - ADY) %>%
   restrict_derivation(
@@ -127,7 +159,7 @@ adcibc5 <- adcibc4 %>%
     filter = !is.na(AVISIT)
   )
 
-## Derive DTYPE=LOCF -------------
+## Derive DTYPE=LOCF -----------------------------------------
 # A dataset with combinations of PARAMCD, AVISIT which are expected.
 cibic_expected_obsv <- tibble::tribble(
   ~PARAMCD, ~AVISITN, ~AVISIT,
@@ -167,36 +199,32 @@ adcibc_locf <- adcibc5 %>%
   filter(!is.na(ADT))
 
 adcibc <- adcibc_locf %>%
+  mutate_if(is.numeric, as.integer) %>%
   drop_unspec_vars(adcibc_spec) %>%
   check_ct_data(adcibc_spec, na_acceptable = TRUE) %>%
   order_cols(adcibc_spec) %>%
   sort_by_key(adcibc_spec) %>%
   set_variable_labels(adcibc_spec) %>%
-  # xportr_df_label(adcibc_spec, domain = "ADAE") %>%
-  # xportr_label(adcibc_spec) %>%
-  # xportr_format(adae_spec$var_spec, "ADAE") %>%
-  convert_na_to_blanks() %>%
-  mutate_if(is.numeric, as.integer)
+  xportr_df_label(adcibc_spec, domain = "ADAE") %>%
+  xportr_label(adcibc_spec) %>%
+  xportr_format(adcibc_spec$var_spec, "ADAE") %>%
+  convert_na_to_blanks()
 
-# compare
+# Temp: compare -----------------------
+diffdf(adcibc, test, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
+
 test <- read_dataset_json("~/Downloads/adqscibc.json")
 
-adcibc5 %>% select(USUBJID, AVISIT, AVISITN) %>% slice(1:20)
-test %>% select(USUBJID, AVISIT, AVISITN) %>% slice(1:20) %>% View()
-test %>% filter(USUBJID == "01-701-1111") %>% select(USUBJID, AVISIT, AVISITN)
-adcibc5 %>% filter(USUBJID == "01-701-1111") %>% select(USUBJID, AVISIT, AVISITN)
-
 adcibc %>%
-  filter(USUBJID == "01-701-1294") %>%
-  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL) %>%
+  filter(USUBJID == "01-705-1310") %>%
+  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL, QSSEQ) %>%
   arrange(AVISITN, ADT)
 
 test %>%
-  filter(USUBJID == "01-701-1294") %>%
-  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL)
+  filter(USUBJID == "01-705-1310") %>%
+  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, ADY, DTYPE, ANL01FL, AVAL, QSSEQ)
 
-adcibc00 %>% filter(USUBJID == "01-701-1294")
-
-
-diffdf(adcibc, test, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
-
+qs %>%
+  filter(USUBJID == "01-705-1310",
+         QSTESTCD == "CIBIC") %>%
+  select(USUBJID, QSSEQ, QSTESTCD, QSSTRESN)
