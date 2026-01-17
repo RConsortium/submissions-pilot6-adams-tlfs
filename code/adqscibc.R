@@ -1,9 +1,9 @@
 # ============================================================================
-# Program: adcibic.R
+# Program: adqscibc.R
 # Purpose: Create ADaM CIBIC+ Analysis Dataset (ADQSCIBC)
 # Description: Derives analysis variables for CIBIC+ Dataset.
 # Input: SDTM domains (QS), ADaM (ADSL)
-# Output: adcibic.json
+# Output: adqscibc.json
 # ============================================================================
 
 # ----------------------------------------------------------------------------
@@ -25,12 +25,12 @@ library(xportr)
 # ----------------------------------------------------------------------------
 # LOAD METADATA
 # ----------------------------------------------------------------------------
-adcibic_spec <- define_to_metacore(
+adcibc_spec <- define_to_metacore(
   #path$define_path,
   file.path("~/Downloads", "define.xml"),
   quiet = TRUE
 ) %>%
-  select_dataset("ADCIBIC")
+  select_dataset("ADCIBC")
 
 # ----------------------------------------------------------------------------
 # LOAD DATASETS
@@ -63,10 +63,11 @@ list2env(c(datasets_rds, datasets_json), envir = .GlobalEnv)
 # ----------------------------------------------------------------------------
 
 # filter QS domain for qstestcd = CIBIC
-adcibic00 <- qs %>%
+adcibc00 <- qs %>%
   filter(QSTESTCD == "CIBIC") %>%
   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN,
          QSSEQ) %>%
+  # TODO: these are read as character from read_dataset_json
   mutate(VISITNUM = as.numeric(VISITNUM),
          QSSTRESN = as.numeric(QSSTRESN),
          QSSEQ = as.numeric(QSSEQ))
@@ -93,7 +94,7 @@ adsl_vars <- exprs(
   COMP24FL
 )
 
-adcibic1 <- adcibic00 %>%
+adcibc1 <- adcibc00 %>%
   derive_vars_merged(
     dataset_add = adsl,
     new_vars = adsl_vars,
@@ -104,14 +105,14 @@ adcibic1 <- adcibic00 %>%
 
 # Derive dates -----------------------------------------------
 # derive ADT and ADY
-adcibic2 <- adcibic1 %>%
+adcibc2 <- adcibc1 %>%
   derive_vars_dt(new_vars_prefix = "A",
                  dtc = QSDTC) %>%
   derive_vars_dy(reference_date = TRTSDT,
                  source_vars = exprs(ADT))
 
 ## Derive AVISIT, AVAL, PARAM, AVISITN, PARAMN -------------------
-adcibic3 <- adcibic2 %>%
+adcibc3 <- adcibc2 %>%
   mutate(
     AVISIT = case_when(
       ADY <= 1 ~ "Baseline",
@@ -123,9 +124,9 @@ adcibic3 <- adcibic2 %>%
     AVAL = QSSTRESN,
     PARAM = "CIBIC Score"
   ) %>%
-  create_var_from_codelist(adcibic_spec, AVISIT, AVISITN) %>%
-  create_var_from_codelist(adcibic_spec, PARAM, PARAMN) %>%
-  create_var_from_codelist(adcibic_spec, PARAM, PARAMCD)
+  create_var_from_codelist(adcibc_spec, AVISIT, AVISITN) %>%
+  create_var_from_codelist(adcibc_spec, PARAM, PARAMN) %>%
+  create_var_from_codelist(adcibc_spec, PARAM, PARAMCD)
 
 ## Derive AWRANGE, AWTARGET, AWTDIFF, AWLO, AWHI, AWU ----------------
 aw_lookup <- tribble(
@@ -136,8 +137,8 @@ aw_lookup <- tribble(
   "Week 24", ">140", 168, 141, NA_integer_
 )
 
-adcibic4 <- derive_vars_merged(
-  adcibic3,
+adcibc4 <- derive_vars_merged(
+  adcibc3,
   dataset_add = aw_lookup,
   by_vars = exprs(AVISIT)
 ) %>%
@@ -147,7 +148,7 @@ adcibic4 <- derive_vars_merged(
   )
 
 ## Derive ANL01FL ----------------------------------------
-adcibic5 <- adcibic4 %>%
+adcibc5 <- adcibc4 %>%
   mutate(diff = AWTARGET - ADY) %>%
   restrict_derivation(
     derivation = derive_var_extreme_flag,
@@ -170,7 +171,7 @@ cibic_expected_obsv <- tibble::tribble(
   "CIBICVAL", 24, "Week 24"
 )
 
-adcibic_locf <- adcibic5 %>%
+adcibc_locf <- adcibc5 %>%
   restrict_derivation(
     derivation = derive_locf_records,
     args = params(
@@ -199,24 +200,24 @@ adcibic_locf <- adcibic5 %>%
   ) %>%
   filter(!is.na(ADT))
 
-adcibic <- adcibic_locf %>%
+adcibc <- adcibc_locf %>%
   mutate_if(is.numeric, as.integer) %>%
-  drop_unspec_vars(adcibic_spec) %>%
-  check_ct_data(adcibic_spec, na_acceptable = TRUE) %>%
-  order_cols(adcibic_spec) %>%
-  sort_by_key(adcibic_spec) %>%
-  set_variable_labels(adcibic_spec) %>%
-  xportr_df_label(adcibic_spec, domain = "ADAE") %>%
-  xportr_label(adcibic_spec) %>%
-  xportr_format(adcibic_spec$var_spec, "ADAE") %>%
+  drop_unspec_vars(adcibc_spec) %>%
+  check_ct_data(adcibc_spec, na_acceptable = TRUE) %>%
+  order_cols(adcibc_spec) %>%
+  sort_by_key(adcibc_spec) %>%
+  set_variable_labels(adcibc_spec) %>%
+  xportr_df_label(adcibc_spec, domain = "ADAE") %>%
+  xportr_label(adcibc_spec) %>%
+  xportr_format(adcibc_spec$var_spec, "ADAE") %>%
   convert_na_to_blanks()
 
 # Temp: compare -----------------------
-diffdf(adcibic, test, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
-
 test <- read_dataset_json("~/Downloads/adqscibc.json")
 
-adcibic %>%
+diffdf(adcibc, test2, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
+
+adcibc %>%
   filter(USUBJID == "01-705-1310") %>%
   select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL, QSSEQ) %>%
   arrange(AVISITN, ADT)
@@ -229,3 +230,6 @@ qs %>%
   filter(USUBJID == "01-705-1310",
          QSTESTCD == "CIBIC") %>%
   select(USUBJID, QSSEQ, QSTESTCD, QSSTRESN)
+
+# TODO: added ADSL to adam folder temporarily
+# figure out how to save
