@@ -212,28 +212,6 @@ adcibc <- adcibc_locf %>%
   xportr_format(adcibc_spec$var_spec, "ADAE") %>%
   convert_na_to_blanks()
 
-# Temp: compare -----------------------
-test <- read_dataset_json("~/Downloads/adqscibc.json")
-
-diffdf(adcibc, test2, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
-
-adcibc %>%
-  filter(USUBJID == "01-705-1310") %>%
-  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL, QSSEQ) %>%
-  arrange(AVISITN, ADT)
-
-test %>%
-  filter(USUBJID == "01-705-1310") %>%
-  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, ADY, DTYPE, ANL01FL, AVAL, QSSEQ)
-
-qs %>%
-  filter(USUBJID == "01-705-1310",
-         QSTESTCD == "CIBIC") %>%
-  select(USUBJID, QSSEQ, QSTESTCD, QSSTRESN)
-
-# TODO: added ADSL to adam folder temporarily
-# figure out how to save
-
 # Prepare column metadata
 oid_cols <- adcibc_spec$ds_vars %>%
   select(dataset, variable, key_seq) %>%
@@ -278,18 +256,37 @@ dataset_json(adcibc,
              item_oid = paste0("IG.ADCIBC"),
              name = "ADCIBC",
              dataset_label = adcibc_spec$ds_spec[["label"]],
-             file_oid = file.path(path$adam, "adcibc.json"),
+             file_oid = file.path(path$adam, "adqscibc.json"),
              columns = oid_cols
 ) %>%
-  write_dataset_json(file = file.path(path$adam, "adcibc.json"), float_as_decimals = FALSE)
+  write_dataset_json(file = file.path(path$adam, "adqscibc.json"), float_as_decimals = FALSE)
 
 
 # Print summary
 cat("\n============================================================================\n")
 cat("ADCIBC Dataset Creation Complete\n")
 cat("============================================================================\n")
-cat("Output file:", file.path(path$adam, "adcibc.json"), "\n")
+cat("Output file:", file.path(path$adam, "adqscibc.json"), "\n")
 cat("Number of records:", nrow(adcibc), "\n")
 cat("Number of subjects:", length(unique(adcibc$USUBJID)), "\n")
 cat("Number of parameters:", length(unique(adcibc$PARAMCD)), "\n")
 cat("============================================================================\n")
+
+# Temp: compare -----------------------
+test <- read_dataset_json("~/Downloads/adqscibc.json")
+
+diffdf(adcibc, test, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
+
+adcibc %>%
+  filter(USUBJID == "01-705-1310") %>%
+  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL, QSSEQ) %>%
+  arrange(AVISITN, ADT)
+
+test %>%
+  filter(USUBJID == "01-705-1310") %>%
+  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, ADY, DTYPE, ANL01FL, AVAL, QSSEQ)
+
+qs %>%
+  filter(USUBJID == "01-705-1310",
+         QSTESTCD == "CIBIC") %>%
+  select(USUBJID, QSSEQ, QSTESTCD, QSSTRESN)
