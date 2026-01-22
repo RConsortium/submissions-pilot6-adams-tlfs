@@ -233,3 +233,63 @@ qs %>%
 
 # TODO: added ADSL to adam folder temporarily
 # figure out how to save
+
+# Prepare column metadata
+oid_cols <- adcibc_spec$ds_vars %>%
+  select(dataset, variable, key_seq) %>%
+  left_join(adcibc_spec$var_spec, by = c("variable")) %>%
+  rename(name = variable, dataType = type, keySequence = key_seq, displayFormat = format) %>%
+  mutate(itemOID = paste0("IT.", dataset, ".", name)) %>%
+  select(itemOID, name, label, dataType, length, keySequence, displayFormat) %>%
+  mutate(
+    dataType =
+      case_when(
+        displayFormat == "DATE9." ~ "date",
+        displayFormat == "DATETIME20." ~ "datetime",
+        substr(name, nchar(name) - 3 + 1, nchar(name)) == "DTC" & length == "8" ~ "date",
+        substr(name, nchar(name) - 3 + 1, nchar(name)) == "DTC" & length == "20" ~ "datetime",
+        dataType == "text" ~ "string",
+        .default = as.character(dataType)
+      ),
+    targetDataType =
+      case_when(
+        displayFormat == "DATE9." ~ "integer",
+        displayFormat == "DATETIME20." ~ "integer",
+        .default = NA
+      ),
+    length = case_when(
+      dataType == "string" ~ length,
+      .default = NA
+    )
+  ) %>%
+  data.frame()
+
+
+# Create and write dataset JSON
+dataset_json(adcibc,
+             last_modified = strftime(as.POSIXlt(Sys.time(), "UTC"), "%Y-%m-%dT%H:%M"),
+             originator = "R Submission Pilot 6",
+             sys = paste0("R on ", R.Version()$os, " ", unname(Sys.info())[[2]]),
+             sys_version = R.Version()$version.string,
+             version = "1.1.0",
+             study = "Pilot 6",
+             metadata_version = "MDV.TDF_ADaM.ADaM-IG.1.1", # from define
+             metadata_ref = file.path(path$adam, "define.xml"),
+             item_oid = paste0("IG.ADCIBC"),
+             name = "ADCIBC",
+             dataset_label = adcibc_spec$ds_spec[["label"]],
+             file_oid = file.path(path$adam, "adcibc.json"),
+             columns = oid_cols
+) %>%
+  write_dataset_json(file = file.path(path$adam, "adcibc.json"), float_as_decimals = FALSE)
+
+
+# Print summary
+cat("\n============================================================================\n")
+cat("ADCIBC Dataset Creation Complete\n")
+cat("============================================================================\n")
+cat("Output file:", file.path(path$adam, "adcibc.json"), "\n")
+cat("Number of records:", nrow(adcibc), "\n")
+cat("Number of subjects:", length(unique(adcibc$USUBJID)), "\n")
+cat("Number of parameters:", length(unique(adcibc$PARAMCD)), "\n")
+cat("============================================================================\n")
