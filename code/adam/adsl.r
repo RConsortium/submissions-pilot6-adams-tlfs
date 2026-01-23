@@ -341,4 +341,4 @@ for (col in colnames(adsl)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adsl, adsl_spec, "adsl", path$adam_json)
+write_dataset_json_with_metadata(adsl, adsl_spec, "adsl", path$adam)
