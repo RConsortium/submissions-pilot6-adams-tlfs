@@ -24,7 +24,7 @@ library(datasetjson)
 dat_to_load <- list(
   lb = file.path(path$sdtm, "lb.json"),
   supplb = file.path(path$sdtm, "supplb.json"),
-  adsl = file.path(path$adam_json, "adsl.json")
+  adsl = file.path(path$adam, "adsl.json")
 )
 
 datasets <- map(
@@ -261,4 +261,4 @@ for (col in colnames(adlbc)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adlbc, adlbc_spec, "adlbc", path$adam_json)
+write_dataset_json_with_metadata(adlbc, adlbc_spec, "adlbc", path$adam)

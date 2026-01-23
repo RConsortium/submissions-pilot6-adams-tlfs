@@ -25,7 +25,7 @@ library(purrr)
 dat_to_load <- list(
   dm = file.path(path$sdtm, "dm.json"),
   qs = file.path(path$sdtm, "qs.json"),
-  adsl = file.path(path$adam_json, "adsl.json")
+  adsl = file.path(path$adam, "adsl.json")
 )
 
 datasets <- map(
@@ -203,4 +203,4 @@ for (col in colnames(adas)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adas, adadas_spec, "adadas", path$adam_json)
+write_dataset_json_with_metadata(adas, adadas_spec, "adadas", path$adam)
