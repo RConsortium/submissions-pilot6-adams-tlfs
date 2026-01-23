@@ -26,7 +26,7 @@ library(datasetjson)
 dat_to_load <- list(
   ae = file.path(path$sdtm, "ae.json"),
   suppae = file.path(path$sdtm, "suppae.json"),
-  adsl = file.path(path$adam_json, "adsl.json")
+  adsl = file.path(path$adam, "adsl.json")
 )
 
 datasets <- map(
@@ -222,4 +222,4 @@ for (col in colnames(adae)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adae, adae_spec, "adae", path$adam_json)
+write_dataset_json_with_metadata(adae, adae_spec, "adae", path$adam)
