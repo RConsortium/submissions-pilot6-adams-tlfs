@@ -15,16 +15,16 @@ library(haven)
 library(dplyr)
 library(admiral)
 library(purrr)
+library(tidyr)
 library(datasetjson)
 library(metacore)
 library(metatools)
+library(xportr)
 
 # Load Data ---------------------------------------------------------------
 
 dat_to_load <- list(
-  lb = file.path(path$sdtm, "lb.json"),
-  supplb = file.path(path$sdtm, "supplb.json"),
-  adsl = file.path(path$adam_reference, "adsl.json")
+  adlbc = file.path(path$adam_reference, "adlbc.json")
 )
 
 datasets <- map(
@@ -46,126 +46,111 @@ adlbhy_spec <- suppressWarnings(
   select_dataset("ADLBHY")
 
 # Select Parameters from LB -----------------------------------------------
+allowed_avisit <- c("Baseline", "Week 2", "Week 4", "Week 6", "Week 8",
+                    "Week 12", "Week 16", "Week 20", "Week 24")
 
-lb_hy <- lb %>%
-  filter(LBTESTCD %in% c("ALT", "AST", "BILI"))
 
-# Merge with ADSL ---------------------------------------------------------
-
-adlbhy <- lb_hy %>%
-  derive_vars_merged(
-    dataset_add = adsl,
-    by_vars = exprs(STUDYID, USUBJID),
-    new_vars = exprs(TRTSDT, TRTEDT, TRT01P, TRT01PN, TRT01A, TRT01AN, 
-                     AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX,
-                     SAFFL, COMP24FL, DSRAEFL)
-  ) %>%
+adlbhy <- adlbc %>%
+  filter(PARAMCD %in% c("ALT", "AST", "BILI"),
+         AVISIT %in% allowed_avisit) %>%
   mutate(
-    TRTP = TRT01P,
-    TRTPN = TRT01PN,
-    TRTA = TRT01A,
-    TRTAN = TRT01AN,
-    PARAMCD = LBTESTCD,
-    PARAM = LBTEST,
     PARAMN = case_when(
       PARAMCD == "ALT" ~ 1,
       PARAMCD == "AST" ~ 2,
       PARAMCD == "BILI" ~ 3
     ),
-    AVAL = LBSTRESN,
-    ADT = as.numeric(as.Date(LBDTC)),
-    ADY = LBDY,
-    AVISIT = VISIT,
-    AVISITN = VISITNUM,
-    A1LO = LBSTNRLO,
-    A1HI = LBSTNRHI,
-    R2A1LO = AVAL / A1LO,
-    R2A1HI = AVAL / A1HI,
-    PARCAT1 = "CHEM"
+    PARAMTYP = NA_character_,
+    CRIT1 = NA_character_,
+    CRIT1FL = NA_character_,
+    SHIFT1 = NA_character_,
+    SHIFT1N = NA_integer_
   )
-
-
-# Baseline/Base -----------------------------------------------------------
-
-adlbhy <- adlbhy %>%
-  restrict_derivation(
-    derivation = derive_var_extreme_flag,
-    args = params(
-      by_vars = exprs(STUDYID, USUBJID, PARAMCD),
-      order = exprs(ADT, LBSEQ),
-      new_var = ABLFL,
-      mode = "last"
-    ),
-    filter = ADT <= TRTSDT
-  )
-
-adlbhy <- adlbhy %>%
-  derive_var_base(
-    by_vars = exprs(STUDYID, USUBJID, PARAMCD),
-    source_var = AVAL,
-    new_var = BASE,
-    filter = ABLFL == "Y"
-  ) %>%
-  mutate(
-    BR2A1LO = BASE / A1LO,
-    BR2A1HI = BASE / A1HI
-  )
-
 
 # Hys Law -----------------------------------------------------------------
 # BILIHY: BILI > 2*ULN
 bilihy <- adlbhy %>%
-  filter(PARAMCD == "BILI", R2A1HI > 2) %>%
+  filter(PARAMCD == "BILI") %>%
   mutate(
     PARAMCD = "BILIHY",
-    PARAM = "Bilirubin > 2*ULN",
+    PARAM = "Bilirubin 1.5 x ULN",
     PARAMN = 4,
-    AVAL = 1
+    AVAL = if_else(R2A1HI > 1.5, 1, 0),
+    PARAMTYP = "DERIVED",
+    CRIT1 = "R2A1HI > 1.5",
+    CRIT1FL = if_else(R2A1HI > 1.5, "Y", "N"),
+    PARCAT1 = "HYLAW"
   )
 
 # TRANSHY: ALT or AST > 3*ULN
 transhy <- adlbhy %>%
-  filter(PARAMCD %in% c("ALT", "AST"), R2A1HI > 3) %>%
-  group_by(STUDYID, USUBJID, VISIT, VISITNUM, ADT) %>%
-  slice(1) %>%
-  ungroup() %>%
-  mutate(
-    PARAMCD = "TRANSHY",
-    PARAM = "Transaminase > 3*ULN",
-    PARAMN = 6,
-    AVAL = 1
-  )
-
-# HYLAW: Both conditions met
-hylaw <- adlbhy %>%
-  filter(PARAMCD %in% c("ALT", "AST", "BILI")) %>%
+  filter(PARAMCD %in% c("ALT", "AST")) %>%
   group_by(STUDYID, USUBJID, VISIT, VISITNUM, ADT) %>%
   summarise(
-    has_bili = any(PARAMCD == "BILI" & R2A1HI > 2),
-    has_trans = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 3),
+    has_elevated = any(R2A1HI > 1.5),
     .groups = "drop"
   ) %>%
-  filter(has_bili & has_trans) %>%
   left_join(
-    adlbhy %>% select(STUDYID, USUBJID, TRTSDT, TRTEDT, TRTP, TRTPN, TRTA, TRTAN,
-                      AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, SAFFL, COMP24FL, DSRAEFL) %>%
+    adlbhy %>% 
+      filter(PARAMCD %in% c("ALT", "AST")) %>%
+      select(-PARAMCD, -PARAM, -PARAMN, -AVAL) %>%
+      distinct(),
+    by = c("STUDYID", "USUBJID", "VISIT", "VISITNUM", "ADT")
+  ) %>%
+  mutate(
+    PARAMCD = "TRANSHY",
+    PARAM = "Transaminase 1.5 x ULN",
+    PARAMN = 6,
+    AVAL = if_else(has_elevated, 1, 0),
+    PARAMTYP = "DERIVED",
+    CRIT1 = "R2A1HI > 1.5",
+    CRIT1FL = if_else(has_elevated, "Y", "N"),
+    PARCAT1 = "HYLAW"
+  ) %>%
+  select(-has_elevated)
+
+# HYLAW: Both conditions met  (0/1 for all visits)
+hylaw_visits <- adlbhy %>%
+  filter(PARAMCD %in% c("ALT", "AST", "BILI")) %>%
+  group_by(STUDYID, USUBJID, AVISIT, AVISITN, ADT) %>%
+  summarise(
+    has_bili = any(PARAMCD == "BILI" & R2A1HI > 1.5),
+    has_trans = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 1.5),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    adlbhy %>% 
+      select(STUDYID, USUBJID, TRTP, TRTPN, TRTA, TRTAN, TRTSDT, TRTEDT,
+             AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, COMP24FL, DSRAEFL, SAFFL) %>% 
       distinct(),
     by = c("STUDYID", "USUBJID")
   ) %>%
   mutate(
     PARAMCD = "HYLAW",
-    PARAM = "Hy's Law",
+    PARAM = "Total Bili 1.5 x ULN and Transaminase 1.5 x ULN",
     PARAMN = 5,
-    AVAL = 1,
-    PARCAT1 = "CHEM"
-  )
+    AVAL = if_else(has_bili & has_trans, 1, 0),
+    PARCAT1 = "HYLAW",
+    PARAMTYP = "DERIVED",
+    CRIT1 = "R2A1HI > 1.5",
+    CRIT1FL = if_else(has_bili & has_trans, "Y", "N"),
+    ADY = NA_integer_,
+    A1LO = NA_real_,
+    A1HI = NA_real_,
+    R2A1LO = NA_real_,
+    R2A1HI = NA_real_,
+    BASE = NA_real_,
+    BR2A1LO = NA_real_,
+    BR2A1HI = NA_real_,
+    ABLFL = NA_character_,
+    SHIFT1 = NA_character_,
+    SHIFT1N = NA_integer_,
+    LBSEQ = NA_integer_,
+    SUBJID = sub(".*-", "", USUBJID)
+  ) %>%
+  select(-has_bili, -has_trans)
 
 # Combine all
-adlbhy_final <- bind_rows(adlbhy, bilihy, transhy, hylaw) %>%
-  mutate(
-    PARAMTYP = if_else(PARAMCD %in% c("BILIHY", "TRANSHY", "HYLAW"), "DERIVED", NA_character_),
-    CRIT1FL = if_else(AVAL == 1 & PARAMCD %in% c("BILIHY", "TRANSHY", "HYLAW"), "Y", NA_character_)
-  ) %>%
+adlbhy <- bind_rows(adlbhy, bilihy, transhy, hylaw_visits) %>%
   arrange(STUDYID, USUBJID, PARAMN, ADT)
 
 # Final clean up ----------------------------------------------------------
@@ -175,7 +160,7 @@ adlbhy <- adlbhy %>%
          AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, COMP24FL, DSRAEFL, SAFFL,
          AVISIT, AVISITN, ADY, ADT, VISIT, VISITNUM, PARAMTYP, PARAM, PARAMCD, PARAMN,
          PARCAT1, AVAL, BASE, A1LO, A1HI, R2A1LO, R2A1HI, BR2A1LO, BR2A1HI,
-         ABLFL, CRIT1FL)
+         ABLFL, SHIFT1, SHIFT1N, CRIT1, CRIT1FL, LBSEQ)
 
 # Output ------------------------------------------------------------------
 
@@ -197,10 +182,10 @@ adlbhy <- adlbhy %>%
 # and missing formats are set to NULL (instead of an empty character vector)
 # when reading original xpt file
 for (col in colnames(adlbhy)) {
-  if (attr(adsl[[col]], "format.sas") == "") {
-    attr(adsl[[col]], "format.sas") <- NULL
-  } else if (attr(adsl[[col]], "format.sas") == "DATE9.") {
-    attr(adsl[[col]], "format.sas") <- "DATE9"
+  if (attr(adlbhy[[col]], "format.sas") == "") {
+    attr(adlbhy[[col]], "format.sas") <- NULL
+  } else if (attr(adlbhy[[col]], "format.sas") == "DATE9.") {
+    attr(adlbhy[[col]], "format.sas") <- "DATE9"
   }
 }
 
