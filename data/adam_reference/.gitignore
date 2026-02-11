@@ -1,5 +1,0 @@
-# Ignore everything in this directory, as files are stored as part of the release
-*
-!.gitignore
-!define.xml
-!pilot6-specs.xlsx
