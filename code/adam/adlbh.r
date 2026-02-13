@@ -22,21 +22,31 @@ library(purrr)        # Functional programming
 library(tibble)       # Creating tibbles
 library(datasetjson)  # Dataset JSON handling
 library(metacore)     # Metadata handling
-
+library(metatools)
+#library(googlesheets4)
 # ----------------------------------------------------------------------------
 # LOAD METADATA
 # ----------------------------------------------------------------------------
 
-# Load define.xml metadata
-adlbh_spec <- define_to_metacore(
-  file.path(path$adam, "define.xml"),
-  quiet = TRUE
-) %>%
+#googlesheets4::read_sheet("https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vR5B7pDzgiHFCjFnmmBVNxytwrH5A06iahdIfkN_WnXf7eoRvdeoUWgJvhImvnn3eJE1DfUq9S2CadT/pubhtml#gid=826399612")
+ 
+## Load dataset specs -------------
+# Very noisy function - remove suppress if you want to see warnings
+metacore <- suppressWarnings(
+  spec_to_metacore(
+    file.path(path$adam_reference, "pilot6-specs.xlsx"),
+    where_sep_sheet = FALSE,
+    quiet = TRUE
+  )
+)
+
+# Get the specifications for the dataset we are currently building
+adlbh_spec <- metacore %>%
   select_dataset("ADLBH")
 
 # Tibbles with codelists
 avisit_codelist <- adlbh_spec$codelist %>%
-  filter(code_id == "CL.ADLBH.AVISITN") %>%
+  filter(code_id == "ADLBH.AVISITN") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
@@ -47,14 +57,14 @@ avisit_codelist <- adlbh_spec$codelist %>%
   rename(AVISITN = code, AVISIT = decode)
 
 paramcd_codelist <- adlbh_spec$codelist %>%
-  filter(code_id == "CL.PARAMCD_ADLBH") %>%
+  filter(code_id == "PARAMCD_ADLBH") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
   rename(PARAMCD = code, PARAM = decode)
 
 paramn_codelist <- adlbh_spec$codelist %>%
-  filter(code_id == "CL.PARAMN_ADLBH") %>%
+  filter(code_id == "PARAMN_ADLBH") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
@@ -74,21 +84,12 @@ param_lookup <- paramcd_codelist %>%
 # ----------------------------------------------------------------------------
 
 # Load SDTM datasets
-walk(
-  c(lb = file.path(path$sdtm, "lb.xpt")),
-  ~ assign(names(.x), read_xpt(.x), envir = .GlobalEnv)
-)
-
-# Load ADaM datasets
-walk(
-  c(adsl = file.path(path$adam, "adsl.json")),
-  ~ assign(names(.x), read_dataset_json(.x), envir = .GlobalEnv)
-)
+lb <- read_dataset_json(file.path(path$sdtm, "lb.json"))
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS
 # ----------------------------------------------------------------------------
-
 # Filter to hematology tests only
 lb_hematology <- lb %>%
   filter(LBCAT == "HEMATOLOGY")
@@ -126,12 +127,15 @@ adlbh_dt <- adlbh_adsl %>%
 
 ## Derive Parameters (PARAMCD, PARAM, PARAMN)
 adlbh_param <- adlbh_dt %>%
-  inner_join(param_lookup, by = "LBTESTCD")
+  derive_vars_merged_lookup(
+    dataset_add = param_lookup, 
+    by_vars = exprs(LBTESTCD)
+    )
 
 ## Derive Analysis Value (AVAL)
 adlbh_aval <- adlbh_param %>%
   mutate(
-    AVAL = LBSTRESN,
+    AVAL = as.numeric(LBSTRESN), # this needs to be looked at
     AVALC = LBSTRESC
   )
 
@@ -144,7 +148,10 @@ adlbh_avisit <- adlbh_aval %>%
       TRUE ~ str_to_title(VISIT)
     )
   ) %>%
-  left_join(avisit_codelist, by = "AVISIT")
+  derive_vars_merged_lookup(
+    dataset_add = avisit_codelist, 
+    by_vars = exprs(AVISIT)
+    )
 
 # Derive end of treatment visit
 adlbh_eot <- adlbh_avisit %>%
@@ -162,16 +169,17 @@ adlbh_eot <- adlbh_avisit %>%
 
 ## Derive Baseline Variables (ABLFL, BASE, CHG, PCHG)
 adlbh_baseline <- adlbh_eot %>%
-  restrict_derivation(
-    derivation = derive_var_extreme_flag,
-    args = params(
-      by_vars = exprs(STUDYID, USUBJID, PARAMCD),
-      order = exprs(ADT, LBSEQ),
-      new_var = ABLFL,
-      mode = "last"
-    ),
-    filter = (!is.na(AVAL) & ADT <= TRTSDT & !is.na(AVISITN))
-  ) %>%
+  mutate(ABLFL = LBBLFL) %>% 
+  # restrict_derivation(
+  #   derivation = derive_var_extreme_flag,
+  #   args = params(
+  #     by_vars = exprs(STUDYID, USUBJID, PARAMCD),
+  #     order = exprs(ADT, LBSEQ),
+  #     new_var = ABLFL,
+  #     mode = "last"
+  #   ),
+  #   filter = (!is.na(AVAL) & ADT <= TRTSDT & !is.na(AVISITN))
+  # ) %>%
   derive_var_base(
     by_vars = exprs(STUDYID, USUBJID, PARAMCD),
     source_var = AVAL,
@@ -192,13 +200,15 @@ adlbh_nrange <- adlbh_baseline %>%
       !is.na(AVAL) & !is.na(ANRLO) & !is.na(ANRHI) ~ "NORMAL",
       TRUE ~ NA_character_
     )
-  ) %>%
-  derive_vars_merged(
-    dataset_add = .,
-    by_vars = exprs(STUDYID, USUBJID, PARAMCD),
-    filter_add = ABLFL == "Y",
-    new_vars = exprs(BNRIND = ANRIND)
-  )
+  )  
+
+
+adlbh_bnrind <- derive_var_base(
+  adlbh_nrange,
+  by_vars = exprs(STUDYID, USUBJID, PARAMCD),
+  source_var = ANRIND,
+  new_var = BNRIND
+)
 
 ## Derive Shift Variables
 adlbh_shift <- adlbh_nrange %>%
