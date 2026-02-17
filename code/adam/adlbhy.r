@@ -50,7 +50,7 @@ allowed_avisit <- c("Baseline", "Week 2", "Week 4", "Week 6", "Week 8",
                     "Week 12", "Week 16", "Week 20", "Week 24")
 
 
-adlbhy <- adlbc %>%
+adlbhy_pre <- adlbc %>%
   filter(PARAMCD %in% c("ALT", "AST", "BILI"),
          AVISIT %in% allowed_avisit) %>%
   mutate(
@@ -59,16 +59,25 @@ adlbhy <- adlbc %>%
       PARAMCD == "AST" ~ 2,
       PARAMCD == "BILI" ~ 3
     ),
-    PARAMTYP = NA_character_,
-    CRIT1 = NA_character_,
-    CRIT1FL = NA_character_,
-    SHIFT1 = NA_character_,
-    SHIFT1N = NA_integer_
+    CRIT1 = case_when(
+      PARAMCD %in% c("ALT", "AST", "BILI") ~ "R2A1HI > 1.5",
+      TRUE ~ NA_character_
+    ),
+    CRIT1FL = case_when(
+      PARAMCD %in% c("ALT", "AST", "BILI") & R2A1HI > 1.5 ~ "Y",
+      !is.na(R2A1HI) ~ "N",
+      TRUE ~ NA_character_
+    ),
+    CRIT1FN = case_when(
+      PARAMCD %in% c("ALT", "AST", "BILI") & R2A1HI > 1.5 ~ 1,
+      !is.na(R2A1HI) ~ 0,
+      TRUE ~ NA_real_
+    )
   )
 
 # Hys Law -----------------------------------------------------------------
-# BILIHY: BILI > 2*ULN
-bilihy <- adlbhy %>%
+# BILIHY: BILI > 1.5*ULN
+bilihy <- adlbhy_pre %>%
   filter(PARAMCD == "BILI") %>%
   mutate(
     PARAMCD = "BILIHY",
@@ -76,82 +85,96 @@ bilihy <- adlbhy %>%
     PARAMN = 4,
     AVAL = if_else(R2A1HI > 1.5, 1, 0),
     PARAMTYP = "DERIVED",
-    CRIT1 = "R2A1HI > 1.5",
-    CRIT1FL = if_else(R2A1HI > 1.5, "Y", "N"),
     PARCAT1 = "HYLAW"
   )
 
-# TRANSHY: ALT or AST > 3*ULN
-transhy <- adlbhy %>%
+# TRANSHY: ALT or AST > 1.5*ULN
+transhy <- adlbhy_pre %>%
   filter(PARAMCD %in% c("ALT", "AST")) %>%
-  group_by(STUDYID, USUBJID, VISIT, VISITNUM, ADT) %>%
-  summarise(
-    has_elevated = any(R2A1HI > 1.5),
-    .groups = "drop"
-  ) %>%
-  left_join(
-    adlbhy %>% 
-      filter(PARAMCD %in% c("ALT", "AST")) %>%
-      select(-PARAMCD, -PARAM, -PARAMN, -AVAL) %>%
-      distinct(),
-    by = c("STUDYID", "USUBJID", "VISIT", "VISITNUM", "ADT")
-  ) %>%
+  mutate(has_elevated = if_else(R2A1HI > 1.5, 1, 0)) %>%
+  arrange(STUDYID, USUBJID, VISIT, VISITNUM, ADT, desc(has_elevated)) %>%
+  distinct(STUDYID, USUBJID, VISIT, VISITNUM, ADT, .keep_all = TRUE) %>%
   mutate(
     PARAMCD = "TRANSHY",
     PARAM = "Transaminase 1.5 x ULN",
-    PARAMN = 6,
-    AVAL = if_else(has_elevated, 1, 0),
+    PARAMN = 5,
+    AVAL = has_elevated,
     PARAMTYP = "DERIVED",
-    CRIT1 = "R2A1HI > 1.5",
-    CRIT1FL = if_else(has_elevated, "Y", "N"),
     PARCAT1 = "HYLAW"
   ) %>%
   select(-has_elevated)
 
 # HYLAW: Both conditions met  (0/1 for all visits)
-hylaw_visits <- adlbhy %>%
+hylaw_visits <- adlbhy_pre %>%
   filter(PARAMCD %in% c("ALT", "AST", "BILI")) %>%
-  group_by(STUDYID, USUBJID, AVISIT, AVISITN, ADT) %>%
+  group_by(STUDYID, USUBJID, VISIT, VISITNUM, ADT) %>%
   summarise(
-    has_bili = any(PARAMCD == "BILI" & R2A1HI > 1.5),
-    has_trans = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 1.5),
+    across(c(SUBJID, TRTP, TRTPN, TRTA, TRTAN, TRTSDT, TRTEDT,
+             AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, 
+             COMP24FL, DSRAEFL, SAFFL, AVISIT, AVISITN, ADY, ABLFL), first),
+    has_bili = any(PARAMCD == "BILI" & R2A1HI > 1.5, na.rm = TRUE),
+    has_trans = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 1.5, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
-  left_join(
-    adlbhy %>% 
-      select(STUDYID, USUBJID, TRTP, TRTPN, TRTA, TRTAN, TRTSDT, TRTEDT,
-             AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, COMP24FL, DSRAEFL, SAFFL) %>% 
-      distinct(),
-    by = c("STUDYID", "USUBJID")
   ) %>%
   mutate(
     PARAMCD = "HYLAW",
     PARAM = "Total Bili 1.5 x ULN and Transaminase 1.5 x ULN",
-    PARAMN = 5,
+    PARAMN = 6,
     AVAL = if_else(has_bili & has_trans, 1, 0),
     PARCAT1 = "HYLAW",
     PARAMTYP = "DERIVED",
     CRIT1 = "R2A1HI > 1.5",
     CRIT1FL = if_else(has_bili & has_trans, "Y", "N"),
-    ADY = NA_integer_,
+    CRIT1FN = if_else(has_bili & has_trans, 1, 0)
+  ) %>%
+  select(-has_bili, -has_trans)
+
+# Derive baseline and shift for all derived parameters
+derived_params <- bind_rows(bilihy, transhy, hylaw_visits) %>%
+  group_by(USUBJID, PARAMCD) %>%
+  mutate(
+    BASE = if_else(ABLFL == "Y", AVAL, NA_real_),
+    BASE = max(BASE, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    BASE = if_else(is.infinite(BASE), NA_real_, BASE),
+    # SHIFT1 derivation per define.xml specification:
+    # - "High to Normal" if BASE=1 and AVAL=0
+    # - "Normal to Normal" if BASE=0 and AVAL=0
+    # - "Normal to High" if BASE=0 and AVAL=1
+    # - Not specified (left blank) if BASE=1 and AVAL=1 (no "High to High" category exists)
+    SHIFT1 = case_when(
+      is.na(BASE) ~ NA_character_,
+      BASE == 1 & AVAL == 0 ~ "High to Normal",
+      BASE == 0 & AVAL == 0 ~ "Normal to Normal",
+      BASE == 0 & AVAL == 1 ~ "Normal to High",
+      BASE == 1 & AVAL == 1 ~ NA_character_  # Not specified in define.xml
+    ),
+    SHIFT1N = case_when(
+      SHIFT1 == "High to Normal" ~ 0,
+      SHIFT1 == "Normal to Normal" ~ 1,
+      SHIFT1 == "Normal to High" ~ 2
+    ),
+    VISIT = NA_character_,
+    VISITNUM = NA_real_,
+    ADT = as.Date(NA),
+    ADY = NA_real_,
     A1LO = NA_real_,
     A1HI = NA_real_,
     R2A1LO = NA_real_,
     R2A1HI = NA_real_,
-    BASE = NA_real_,
     BR2A1LO = NA_real_,
     BR2A1HI = NA_real_,
-    ABLFL = NA_character_,
-    SHIFT1 = NA_character_,
-    SHIFT1N = NA_integer_,
-    LBSEQ = NA_integer_,
-    SUBJID = sub(".*-", "", USUBJID)
-  ) %>%
-  select(-has_bili, -has_trans)
+    CRIT1 = NA_character_,
+    CRIT1FL = NA_character_,
+    CRIT1FN = NA_real_
+  )
 
 # Combine all
-adlbhy <- bind_rows(adlbhy, bilihy, transhy, hylaw_visits) %>%
-  arrange(STUDYID, USUBJID, PARAMN, ADT)
+adlbhy <- bind_rows(adlbhy_pre, derived_params) %>%
+  arrange(STUDYID, USUBJID, PARAMN, ADT) %>%
+  convert_na_to_blanks()
 
 # Final clean up ----------------------------------------------------------
 
@@ -160,7 +183,7 @@ adlbhy <- adlbhy %>%
          AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, COMP24FL, DSRAEFL, SAFFL,
          AVISIT, AVISITN, ADY, ADT, VISIT, VISITNUM, PARAMTYP, PARAM, PARAMCD, PARAMN,
          PARCAT1, AVAL, BASE, A1LO, A1HI, R2A1LO, R2A1HI, BR2A1LO, BR2A1HI,
-         ABLFL, SHIFT1, SHIFT1N, CRIT1, CRIT1FL, LBSEQ)
+         ABLFL, SHIFT1, SHIFT1N, CRIT1, CRIT1FL, CRIT1FN)
 
 # Output ------------------------------------------------------------------
 
