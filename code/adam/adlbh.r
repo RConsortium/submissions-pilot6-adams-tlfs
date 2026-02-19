@@ -106,13 +106,7 @@ adlbh_adsl <- lb_hematology %>%
     dataset_add = adsl,
     new_vars = adsl_vars,
     by_vars = exprs(STUDYID, USUBJID)
-  ) %>%
-  mutate(
-    TRTP = TRT01P,
-    TRTPN = TRT01PN,
-    TRTA = TRT01A,
-    TRTAN = TRT01AN
-  )
+  ) 
 
 ## Derive Analysis Date (ADT) and Relative Day (ADY)
 adlbh_dt <- adlbh_adsl %>%
@@ -130,7 +124,8 @@ adlbh_param <- adlbh_dt %>%
   derive_vars_merged_lookup(
     dataset_add = param_lookup, 
     by_vars = exprs(LBTESTCD)
-    )
+    ) %>% 
+  mutate(PARCAT1 = str_to_title(LBCAT))
 
 ## Derive Analysis Value (AVAL)
 adlbh_aval <- adlbh_param %>%
@@ -192,12 +187,16 @@ adlbh_baseline <- adlbh_eot %>%
 ## Derive Normal Range Indicators (ANRLO, ANRHI, ANRIND, BNRIND)
 adlbh_nrange <- adlbh_baseline %>%
   mutate(
-    ANRLO = LBSTNRLO,
-    ANRHI = LBSTNRHI,
+    A1LO = if_else(!is.na(LBSTNRLO), as.numeric(LBSTNRLO), NA),
+    A1HI = if_else(!is.na(LBSTNRHI), as.numeric(LBSTNRHI), NA),
+    R2A1LO = if_else(!is.na(LBSTNRLO), AVAL / A1LO, NA),
+    R2A1HI = if_else(!is.na(LBSTNRHI), AVAL / A1HI, NA),
+    BR2A1LO = if_else(!is.na(LBSTNRLO) & ABLFL == "Y", AVAL / A1HI, NA),
+    BR2A1HI = if_else(!is.na(LBSTNRHI) & ABLFL == "Y", AVAL / A1HI, NA),
     ANRIND = case_when(
-      !is.na(AVAL) & !is.na(ANRLO) & !is.na(ANRHI) & AVAL < ANRLO ~ "LOW",
-      !is.na(AVAL) & !is.na(ANRLO) & !is.na(ANRHI) & AVAL > ANRHI ~ "HIGH",
-      !is.na(AVAL) & !is.na(ANRLO) & !is.na(ANRHI) ~ "NORMAL",
+      !is.na(AVAL) & !is.na(A1LO) & !is.na(A1HI) & AVAL < A1LO ~ "LOW",
+      !is.na(AVAL) & !is.na(A1LO) & !is.na(A1HI) & AVAL > A1HI ~ "HIGH",
+      !is.na(AVAL) & !is.na(A1LO) & !is.na(A1HI) ~ "NORMAL",
       TRUE ~ NA_character_
     )
   )  
@@ -208,81 +207,21 @@ adlbh_bnrind <- derive_var_base(
   by_vars = exprs(STUDYID, USUBJID, PARAMCD),
   source_var = ANRIND,
   new_var = BNRIND
-)
+) %>%
+  mutate(VISITNUM = as.numeric(VISITNUM))
 
-## Derive Shift Variables
-adlbh_shift <- adlbh_nrange %>%
-  mutate(
-    SHIFT1 = case_when(
-      !is.na(BNRIND) & !is.na(ANRIND) ~ paste0(BNRIND, " to ", ANRIND),
-      TRUE ~ NA_character_
-    )
-  )
+adlbh_max_aval <- adlbh_bnrind %>%
+  mutate(VISITNUM = as.numeric(VISITNUM)) %>% 
+  filter(VISITNUM >= 4 & VISITNUM <= 12) %>% 
+  group_by(USUBJID, PARAMCD) %>%         
+  summarise(
+    max_aval_in_range = max(AVAL, na.rm = TRUE),
+    .groups = 'drop'                            
+  ) %>% 
+  mutate(ANL01FL = "Y",
+         AVAL = max_aval_in_range) 
 
-## Derive Analysis Flags (ANL01FL)
-adlbh_anl01fl <- adlbh_shift %>%
-  mutate(
-    ANL01FL = case_when(
-      !is.na(AVISIT) & !is.na(AVAL) ~ "Y",
-      TRUE ~ NA_character_
-    )
-  )
-
-## Derive ATOXGR and BTOXGR (Toxicity Grade)
-# Common Toxicity Criteria for Hematology Parameters
-# These are example grades and should be customized based on specific study requirements
-adlbh_toxicity <- adlbh_anl01fl %>%
-  mutate(
-    ATOXGR = case_when(
-      # Hemoglobin (g/dL)
-      PARAMCD == "HGB" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
-      PARAMCD == "HGB" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 10.0 ~ "1",
-      PARAMCD == "HGB" & !is.na(AVAL) & AVAL < 10.0 & AVAL >= 8.0 ~ "2",
-      PARAMCD == "HGB" & !is.na(AVAL) & AVAL < 8.0 & AVAL >= 6.5 ~ "3",
-      PARAMCD == "HGB" & !is.na(AVAL) & AVAL < 6.5 ~ "4",
-      # Leukocytes (10^9/L)
-      PARAMCD == "WBC" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
-      PARAMCD == "WBC" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 3.0 ~ "1",
-      PARAMCD == "WBC" & !is.na(AVAL) & AVAL < 3.0 & AVAL >= 2.0 ~ "2",
-      PARAMCD == "WBC" & !is.na(AVAL) & AVAL < 2.0 & AVAL >= 1.0 ~ "3",
-      PARAMCD == "WBC" & !is.na(AVAL) & AVAL < 1.0 ~ "4",
-      # Platelets (10^9/L)
-      PARAMCD == "PLAT" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
-      PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 75.0 ~ "1",
-      PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < 75.0 & AVAL >= 50.0 ~ "2",
-      PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < 50.0 & AVAL >= 25.0 ~ "3",
-      PARAMCD == "PLAT" & !is.na(AVAL) & AVAL < 25.0 ~ "4",
-      # Neutrophils (10^9/L)
-      PARAMCD == "NEUT" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
-      PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 1.5 ~ "1",
-      PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < 1.5 & AVAL >= 1.0 ~ "2",
-      PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < 1.0 & AVAL >= 0.5 ~ "3",
-      PARAMCD == "NEUT" & !is.na(AVAL) & AVAL < 0.5 ~ "4",
-      # Lymphocytes (10^9/L)
-      PARAMCD == "LYMPH" & !is.na(AVAL) & !is.na(ANRLO) & AVAL >= ANRLO ~ "0",
-      PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < ANRLO & AVAL >= 0.8 ~ "1",
-      PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < 0.8 & AVAL >= 0.5 ~ "2",
-      PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < 0.5 & AVAL >= 0.2 ~ "3",
-      PARAMCD == "LYMPH" & !is.na(AVAL) & AVAL < 0.2 ~ "4",
-      TRUE ~ NA_character_
-    )
-  ) %>%
-  derive_vars_merged(
-    dataset_add = .,
-    by_vars = exprs(STUDYID, USUBJID, PARAMCD),
-    filter_add = ABLFL == "Y",
-    new_vars = exprs(BTOXGR = ATOXGR)
-  )
-
-## Derive Criterion Flags (CRIT1, CRIT1FL)
-adlbh_criterion <- adlbh_toxicity %>%
-  mutate(
-    CRIT1 = "Abnormal",
-    CRIT1FL = case_when(
-      ANRIND %in% c("HIGH", "LOW") ~ "Y",
-      TRUE ~ NA_character_
-    )
-  )
+adlbh_anl01fl <- left_join(adlbh_bnrind, adlbh_max_aval)
 
 # Sort the data
 sort_order <- adlbh_criterion %>%
