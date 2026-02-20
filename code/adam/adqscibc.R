@@ -26,8 +26,7 @@ library(xportr)
 # LOAD METADATA
 # ----------------------------------------------------------------------------
 adcibc_spec <- define_to_metacore(
-  #path$define_path,
-  file.path("~/Downloads", "define.xml"),
+  file.path(path$adam_reference, "define.xml"),
   quiet = TRUE
 ) %>%
   select_dataset("ADCIBC")
@@ -36,12 +35,9 @@ adcibc_spec <- define_to_metacore(
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 # Define data to load
-data_to_load_rds <- list(
-  adsl = file.path(path$adam, "adsl.rds")
-)
-
 data_to_load_json <- list(
-  qs = file.path(path$sdtm, "qs.json")
+  qs = file.path(path$sdtm, "qs.json"),
+  adsl = file.path(path$adam, "adsl.json")
 )
 
 # Load datasets using map and convert blanks to NA
@@ -67,7 +63,7 @@ adcibc00 <- qs %>%
   filter(QSTESTCD == "CIBIC") %>%
   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN,
          QSSEQ) %>%
-  # TODO: these are read as character from read_dataset_json
+  # Note: these are read as character from read_dataset_json
   mutate(VISITNUM = as.numeric(VISITNUM),
          QSSTRESN = as.numeric(QSSTRESN),
          QSSEQ = as.numeric(QSSEQ))
@@ -89,7 +85,6 @@ adsl_vars <- exprs(
   RACEN,
   SEX,
   ITTFL,
-  #TODO: spec says this is called FASFL in ADSL??
   EFFFL,
   COMP24FL
 )
@@ -242,7 +237,6 @@ oid_cols <- adcibc_spec$ds_vars %>%
   ) %>%
   data.frame()
 
-
 # Create and write dataset JSON
 dataset_json(adcibc,
              last_modified = strftime(as.POSIXlt(Sys.time(), "UTC"), "%Y-%m-%dT%H:%M"),
@@ -261,7 +255,6 @@ dataset_json(adcibc,
 ) %>%
   write_dataset_json(file = file.path(path$adam, "adqscibc.json"), float_as_decimals = FALSE)
 
-
 # Print summary
 cat("\n============================================================================\n")
 cat("ADCIBC Dataset Creation Complete\n")
@@ -271,22 +264,3 @@ cat("Number of records:", nrow(adcibc), "\n")
 cat("Number of subjects:", length(unique(adcibc$USUBJID)), "\n")
 cat("Number of parameters:", length(unique(adcibc$PARAMCD)), "\n")
 cat("============================================================================\n")
-
-# Temp: compare -----------------------
-test <- read_dataset_json("~/Downloads/adqscibc.json")
-
-diffdf(adcibc, test, keys = c("USUBJID", "PARAMCD", "AVISIT", "ADT"))
-
-adcibc %>%
-  filter(USUBJID == "01-705-1310") %>%
-  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, DTYPE, ANL01FL, AVAL, QSSEQ) %>%
-  arrange(AVISITN, ADT)
-
-test %>%
-  filter(USUBJID == "01-705-1310") %>%
-  select(USUBJID, AVISIT, AVISITN, ADT, AWTARGET, AWTDIFF, AWRANGE, ADY, DTYPE, ANL01FL, AVAL, QSSEQ)
-
-qs %>%
-  filter(USUBJID == "01-705-1310",
-         QSTESTCD == "CIBIC") %>%
-  select(USUBJID, QSSEQ, QSTESTCD, QSSTRESN)
