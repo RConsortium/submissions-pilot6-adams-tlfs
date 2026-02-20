@@ -41,18 +41,13 @@ data_to_load_json <- list(
 )
 
 # Load datasets using map and convert blanks to NA
-datasets_rds <- map(
-  data_to_load_rds,
-  ~ convert_blanks_to_na(readRDS(.x))
-)
-
 datasets_json <- map(
   data_to_load_json,
   ~ convert_blanks_to_na(read_dataset_json(.x))
 )
 
 # Put datasets into the global environment
-list2env(c(datasets_rds, datasets_json), envir = .GlobalEnv)
+list2env(datasets_json, envir = .GlobalEnv)
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS
