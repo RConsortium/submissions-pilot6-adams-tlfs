@@ -31,7 +31,7 @@ library(metatools)
 #googlesheets4::read_sheet("https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vR5B7pDzgiHFCjFnmmBVNxytwrH5A06iahdIfkN_WnXf7eoRvdeoUWgJvhImvnn3eJE1DfUq9S2CadT/pubhtml#gid=826399612")
  
 ## Load dataset specs -------------
-# Very noisy function - remove suppress if you want to see warnings
+# Very noisy function - remove suppress if you want to see warning(s)
 metacore <- suppressWarnings(
   spec_to_metacore(
     file.path(path$adam_reference, "pilot6-specs.xlsx"),
