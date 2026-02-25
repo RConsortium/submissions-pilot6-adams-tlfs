@@ -23,7 +23,7 @@ library(tibble)       # Creating tibbles
 library(datasetjson)  # Dataset JSON handling
 library(metacore)     # Metadata handling
 library(metatools)
-#library(googlesheets4)
+
 # ----------------------------------------------------------------------------
 # LOAD METADATA
 # ----------------------------------------------------------------------------
