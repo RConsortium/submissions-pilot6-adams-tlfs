@@ -109,7 +109,7 @@ adlb04 <- adlb03 %>%
   mutate(
     PARAM = paste0(LBTEST, " (", LBSTRESU, ")"),
     PARAMCD = LBTESTCD,
-    PARCAT1 = "CHEM"
+    PARCAT1 = "HEM"
   ) %>%
   create_var_from_codelist(
     metacore = adlbh_spec,
