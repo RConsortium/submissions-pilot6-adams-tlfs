@@ -38,19 +38,17 @@ adcibc_spec <- define_to_metacore(
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 # Define data to load
-data_to_load_json <- list(
+dat_to_load <- list(
   qs = file.path(path$sdtm, "qs.json"),
   adsl = file.path(path$adam, "adsl.json")
 )
 
 # Load datasets using map and convert blanks to NA
-datasets_json <- map(
-  data_to_load_json,
-  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
-)
-
-# Put datasets into the global environment
-list2env(datasets_json, envir = .GlobalEnv)
+purrr::iwalk(dat_to_load, \(file_path, var_name) {
+  raw_data <- read_dataset_json(file_path, decimals_as_floats = TRUE)
+  assign(var_name, raw_data, envir = .GlobalEnv)
+  message(paste("Assigned variable '", var_name, "' to .GlobalEnv"))
+})
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS
