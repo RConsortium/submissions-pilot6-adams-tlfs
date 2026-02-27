@@ -192,7 +192,6 @@ adlb08 <- adlb07 %>%
     ANRHI = LBSTNRHI,
     A1LO = LBSTNRLO,
     A1HI = LBSTNRHI,
-    browser(),
     R2A1LO = AVAL / A1LO,
     R2A1HI = AVAL / A1HI,
     BR2A1LO = BASE / A1LO,

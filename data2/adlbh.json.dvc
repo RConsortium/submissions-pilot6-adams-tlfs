@@ -1,0 +1,5 @@
+outs:
+- md5: 70b64f7043a1f030470176d65b9f9721
+  size: 10161435
+  hash: md5
+  path: adlbh.json

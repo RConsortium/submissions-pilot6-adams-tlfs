@@ -38,7 +38,7 @@ list2env(datasets, envir = .GlobalEnv)
 # Very noisy function - remove suppress if you want to see warnings
 metacore <- suppressWarnings(
   spec_to_metacore(
-    file.path(path$adam, "adam-pilot-5.xlsx"),
+    file.path(path$adam_reference, "pilot6-specs.xlsx"),
     where_sep_sheet = FALSE,
     quiet = TRUE
   )
@@ -311,8 +311,8 @@ adsl07 <- adsl06 %>%
 
 ## Site group ----------
 # Grouping by SITEID, TRT01A to get the count fewer than 3 patients in any one treatment group.
-adsl07 <- adsl07 %>%
-  mutate(SITEGR1 = format_sitegr1(SITEID))
+#adsl07 <- adsl07 %>%
+#  mutate(SITEGR1 = format_sitegr1(SITEID))
 
 # Export to xpt ----------------
 adsl <- adsl07 %>%
@@ -341,4 +341,5 @@ for (col in colnames(adsl)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adsl, adsl_spec, "adsl", path$adam_json)
+save_dataset_json(path$adam, adsl, adsl_spec)
+

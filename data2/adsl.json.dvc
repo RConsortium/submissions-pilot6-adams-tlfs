@@ -1,0 +1,5 @@
+outs:
+- md5: 61fe721a5efac91f58e0d716f9683ea0
+  size: 108001
+  hash: md5
+  path: adsl.json
