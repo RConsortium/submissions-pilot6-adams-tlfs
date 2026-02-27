@@ -1,5 +1,5 @@
 # ============================================================================
-# Program: adqscibc.R
+# Program: adqscibc.r
 # Purpose: Create ADaM CIBIC+ Analysis Dataset (ADQSCIBC)
 # Description: Derives analysis variables for CIBIC+ Dataset.
 # Input: SDTM domains (QS), ADaM (ADSL)
@@ -20,7 +20,7 @@ library(purrr)        # Functional programming
 library(tibble)       # Creating tibbles
 library(datasetjson)  # Dataset JSON handling
 library(metacore)     # Metadata handling
-library(xportr)
+library(metatools)
 
 # ----------------------------------------------------------------------------
 # LOAD METADATA
@@ -197,9 +197,6 @@ adcibc <- adcibc_locf %>%
   order_cols(adcibc_spec) %>%
   sort_by_key(adcibc_spec) %>%
   set_variable_labels(adcibc_spec) %>%
-  xportr_df_label(adcibc_spec, domain = "ADAE") %>%
-  xportr_label(adcibc_spec) %>%
-  xportr_format(adcibc_spec$var_spec, "ADAE") %>%
   convert_na_to_blanks()
 
 # Prepare column metadata
