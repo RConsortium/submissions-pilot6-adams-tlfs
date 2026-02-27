@@ -30,7 +30,6 @@ convert_blanks_to_na_local <- function(df) {
 
 adsl <- read_dataset_json(
   file.path(path$adam, "adsl.json"),
-  decimals_as_floats = TRUE
 ) %>%
   convert_blanks_to_na_local() %>%
   rename_with(tolower)
@@ -96,10 +95,6 @@ t_14_1_1$table_body <- t_14_1_1$table_body %>%
       num <- as.integer(str_extract(m, "\\d+"))
       sprintf("(%3d%%)", num)
     }))
-  ) %>%
-  # Move column values to the center by padding with spaces
-  mutate(
-    across(all_stat_cols(), ~ str_pad(.x, width = 6, side = "both"))
   )
 
 # ----------------------------------------------------------------------------
@@ -116,7 +111,7 @@ saveRDS(t_14_1_1_ard, file.path(path$table_ard, "t_14_1_1.rds"))
 gt_table <-
   t_14_1_1 %>%
   as_gt() %>%
-  cols_align(align = "right", columns = -label) %>%
+  cols_align(align = "center", columns = -label) %>%
   tab_style(
     style = cell_text(align = "center"),
     locations = cells_column_labels(columns = everything())
