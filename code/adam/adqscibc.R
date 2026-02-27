@@ -43,7 +43,7 @@ data_to_load_json <- list(
 # Load datasets using map and convert blanks to NA
 datasets_json <- map(
   data_to_load_json,
-  ~ convert_blanks_to_na(read_dataset_json(.x))
+  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
 )
 
 # Put datasets into the global environment
@@ -57,11 +57,7 @@ list2env(datasets_json, envir = .GlobalEnv)
 adcibc00 <- qs %>%
   filter(QSTESTCD == "CIBIC") %>%
   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN,
-         QSSEQ) %>%
-  # Note: these are read as character from read_dataset_json
-  mutate(VISITNUM = as.numeric(VISITNUM),
-         QSSTRESN = as.numeric(QSSTRESN),
-         QSSEQ = as.numeric(QSSEQ))
+         QSSEQ)
 
 ## ADSL information ----------------------------------------------
 adsl_vars <- exprs(
