@@ -1,5 +1,5 @@
 #************************************************************************
-# Purpose:     Generate adlbh dataset
+# Purpose:     Generate ADLBH dataset
 # Input:       LB, SUPPLB (from datasetjson), and ADSL datasets
 # Output:      adlbh.json
 #************************************************************************
