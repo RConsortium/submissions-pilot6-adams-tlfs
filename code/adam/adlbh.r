@@ -53,8 +53,6 @@ adlb00 <- lb %>%
   mutate(
     LBSTNRLO = as.numeric(LBSTNRLO),
     LBSTNRHI = as.numeric(LBSTNRHI),
-    LBSTNRLO = as.numeric(LBSTNRLO),
-    LBSTNRHI = as.numeric(LBSTNRHI),
     LBSTRESN = as.numeric(LBSTRESN),
   )
 
@@ -192,7 +190,6 @@ adlb08 <- adlb07 %>%
     ANRHI = LBSTNRHI,
     A1LO = LBSTNRLO,
     A1HI = LBSTNRHI,
-    browser(),
     R2A1LO = AVAL / A1LO,
     R2A1HI = AVAL / A1HI,
     BR2A1LO = BASE / A1LO,
@@ -225,7 +222,6 @@ adlb09 <- adlb08 %>%
   slice(1) %>%
   full_join(adlb08, by = c("USUBJID", "PARAMCD", "LBSEQ"), multiple = "all")
 
-# Export to xpt ---------------
 adlbh10 <- adlb09 %>%
   mutate(
     TRTP = TRT01P,
