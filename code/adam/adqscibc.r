@@ -29,7 +29,7 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 # LOAD METADATA
 # ----------------------------------------------------------------------------
 adcibc_spec <- define_to_metacore(
-  file.path(path$adam_reference, "define.xml"),
+  path$define_path,
   quiet = TRUE
 ) %>%
   select_dataset("ADCIBC")
@@ -136,7 +136,7 @@ adcibc4 <- derive_vars_merged(
 
 ## Derive ANL01FL ----------------------------------------
 adcibc5 <- adcibc4 %>%
-  mutate(diff = AWTARGET - ADY) %>%
+  mutate(diff = ADY - AWTARGET) %>%
   restrict_derivation(
     derivation = derive_var_extreme_flag,
     args = params(
@@ -171,7 +171,7 @@ adcibc_locf <- adcibc5 %>%
       order = exprs(AVISITN, AVISIT),
       keep_vars = exprs(VISIT, VISITNUM, ADY, ADT, PARAM, PARAMN, QSSEQ)
     ),
-    filter = TRUE #!is.na(ANL01FL)
+    filter = !is.na(ANL01FL)
   ) %>%
   # assign ANL01FL for new records
   mutate(ANL01FL = if_else(is.na(DTYPE), ANL01FL, "Y")) %>%
@@ -193,8 +193,7 @@ adqscibc <- adcibc_locf %>%
   check_ct_data(adcibc_spec, na_acceptable = TRUE) %>%
   order_cols(adcibc_spec) %>%
   sort_by_key(adcibc_spec) %>%
-  set_variable_labels(adcibc_spec) %>%
-  convert_na_to_blanks()
+  set_variable_labels(adcibc_spec)
 
 # ----------------------------------------------------------------------------
 # EXPORT
