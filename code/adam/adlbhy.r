@@ -11,15 +11,14 @@
 
 # Libraries ---------------------------------------------------------------
 
-library(haven)
 library(dplyr)
-library(admiral)
-library(purrr)
 library(tidyr)
-library(datasetjson)
+library(admiral)
 library(metacore)
 library(metatools)
-library(xportr)
+library(stringr)
+library(purrr)
+library(datasetjson)
 
 # Load Data ---------------------------------------------------------------
 
@@ -176,15 +175,6 @@ adlbhy <- bind_rows(adlbhy_pre, derived_params) %>%
   arrange(STUDYID, USUBJID, PARAMN, ADT) %>%
   convert_na_to_blanks()
 
-# Final clean up ----------------------------------------------------------
-
-adlbhy <- adlbhy %>%
-  select(STUDYID, SUBJID, USUBJID, TRTP, TRTPN, TRTA, TRTAN, TRTSDT, TRTEDT,
-         AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, COMP24FL, DSRAEFL, SAFFL,
-         AVISIT, AVISITN, ADY, ADT, VISIT, VISITNUM, PARAMTYP, PARAM, PARAMCD, PARAMN,
-         PARCAT1, AVAL, BASE, A1LO, A1HI, R2A1LO, R2A1HI, BR2A1LO, BR2A1HI,
-         ABLFL, SHIFT1, SHIFT1N, CRIT1, CRIT1FL, CRIT1FN)
-
 # Output ------------------------------------------------------------------
 
 adlbhy <- adlbhy %>%
@@ -193,23 +183,11 @@ adlbhy <- adlbhy %>%
   order_cols(adlbhy_spec) %>%
   sort_by_key(adlbhy_spec) %>%
   set_variable_labels(adlbhy_spec) %>%
-  xportr_label(adlbhy_spec) %>%
-  xportr_df_label(adlbhy_spec, domain = "adlbhy") %>%
-  xportr_format(
-    adlbhy_spec$var_spec %>% mutate_at(c("format"), ~ replace_na(., "")),
-    "ADLBHY"
-  ) %>%
-  convert_na_to_blanks()
 
-# FIX: attribute issues where sas.format attributes set to DATE9. are changed to DATE9,
-# and missing formats are set to NULL (instead of an empty character vector)
-# when reading original xpt file
-for (col in colnames(adlbhy)) {
-  if (attr(adlbhy[[col]], "format.sas") == "") {
-    attr(adlbhy[[col]], "format.sas") <- NULL
-  } else if (attr(adlbhy[[col]], "format.sas") == "DATE9.") {
-    attr(adlbhy[[col]], "format.sas") <- "DATE9"
-  }
-}
+  save_dataset_json(
+    output_dir = path$adam,
+    dataset = adlbhy,
+    ds_spec = adlbhy_spec
+  )
 
-write_dataset_json_with_metadata(adlbhy, adlbhy_spec, "adlbhy", path$adam_json)
+# END ------------------------------------------------------------------
