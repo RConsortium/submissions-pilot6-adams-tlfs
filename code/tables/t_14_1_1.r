@@ -119,22 +119,6 @@ gt_table <-
   tab_header(
     title = "Table 14-1.01",
     subtitle = "Summary of Populations"
-  ) %>%
-  tab_source_note(
-    "NOTE: N in column headers represents number of subjects entered in study (i.e., signed informed consent). "
-  ) %>%
-  tab_source_note(
-    paste0(
-      "The ITT population includes all subjects randomized. ",
-      "The Safety population includes all randomized subjects known to have taken ",
-      "at least one dose of randomized study drug."
-    )
-  ) %>%
-  tab_source_note(
-    paste0(
-      "The Efficacy population includes all subjects in the safety ",
-      "population who also have at least one post-baseline ADAS-Cog and CIBIC+ assessment."
-    )
   )
 
 # Add header and footer using docorator
@@ -147,6 +131,29 @@ gt_table %>%
       fancyrow(left = "Population: All Subjects", center = NA, right = NA)
     ),
     footer = fancyfoot(
+      fancyrow(left =
+          paste0(
+            "NOTE: N in column headers represents number of subjects entered in study ",
+            "(i.e., signed informed consent). ",
+            "The ITT "
+          )
+      ),
+      fancyrow(left =
+          paste0(
+            "population includes all subjects randomized. ",
+            "The Safety population includes all randomized subjects known to have taken at"
+          )
+      ),
+      fancyrow(left =
+          paste0(
+            "least one dose of randomized study drug.",
+            "The Efficacy population includes all subjects in the safety ",
+            "population who also have"
+          )
+      ),
+      fancyrow(left =
+          "at least one post-baseline ADAS-Cog and CIBIC+ assessment."
+      ),
       fancyrow(left = doc_path(), center = NA, right = doc_datetime())
     )
   ) %>%
