@@ -23,6 +23,9 @@ library(purrr)
 library(glue)
 library(datasetjson)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
+
 ## Load datasets ----------------------
 dat_to_load <- c("dm", "ds", "qs", "ex", "qs", "sv", "vs", "sc", "mh")
 
@@ -34,14 +37,19 @@ datasets <- map(
 
 list2env(datasets, envir = .GlobalEnv)
 
+format_sitegr1 <- function(x) {
+  case_when(
+    x %in% c("702", "706", "707", "711", "714", "715", "717") ~ "900",
+    TRUE ~ x
+  )
+}
+
 ## Load dataset specs -------------
 # Very noisy function - remove suppress if you want to see warnings
-metacore <- suppressWarnings(
-  spec_to_metacore(
-    file.path(path$adam, "adam-pilot-5.xlsx"),
-    where_sep_sheet = FALSE,
-    quiet = TRUE
-  )
+metacore <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
+  quiet = TRUE
 )
 
 # Get the specifications for the dataset we are currently building
@@ -341,4 +349,4 @@ for (col in colnames(adsl)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adsl, adsl_spec, "adsl", path$adam_json)
+save_dataset_json(path$adam, adsl, adsl_spec)
