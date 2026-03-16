@@ -1,0 +1,5 @@
+outs:
+- md5: f8fc69c93079d5c11b0b197420e8a83a
+  size: 148616
+  hash: md5
+  path: suppdm.json

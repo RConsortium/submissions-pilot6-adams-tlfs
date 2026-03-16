@@ -1,0 +1,5 @@
+outs:
+- md5: 3363e73c387c1a276894a9e006d2b746
+  size: 89334
+  hash: md5
+  path: ex.json

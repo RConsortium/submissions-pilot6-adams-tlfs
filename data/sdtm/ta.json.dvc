@@ -1,0 +1,5 @@
+outs:
+- md5: b573baa08011b163771166782040e322
+  size: 1903
+  hash: md5
+  path: ta.json

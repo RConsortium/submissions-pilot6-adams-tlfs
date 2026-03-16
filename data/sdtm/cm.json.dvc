@@ -1,0 +1,5 @@
+outs:
+- md5: 8608a83e8d14677d797c03eaa3e598a5
+  size: 1570895
+  hash: md5
+  path: cm.json
