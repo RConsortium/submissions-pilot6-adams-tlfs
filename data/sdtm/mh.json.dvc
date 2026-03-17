@@ -1,0 +1,5 @@
+outs:
+- md5: 00ae55feff3b7302c9061cca4ffe9b8e
+  size: 412644
+  hash: md5
+  path: mh.json

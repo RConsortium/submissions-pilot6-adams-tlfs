@@ -1,0 +1,5 @@
+outs:
+- md5: 599646ae9c9d7d42f543959fb8870bb7
+  size: 7034253
+  hash: md5
+  path: vs.json

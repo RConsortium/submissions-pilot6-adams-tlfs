@@ -1,0 +1,5 @@
+outs:
+- md5: 65e7160f7faf2cfbaad26bb16efeb707
+  size: 34635
+  hash: md5
+  path: sc.json

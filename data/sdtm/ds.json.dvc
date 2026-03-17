@@ -1,0 +1,5 @@
+outs:
+- md5: 576a62dc92a83a619383b002017ae13e
+  size: 99723
+  hash: md5
+  path: ds.json
