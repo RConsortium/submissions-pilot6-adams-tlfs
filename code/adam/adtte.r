@@ -13,22 +13,27 @@
 ## Load libraries -------
 library(dplyr)
 library(tidyr)
+library(purrr)
 library(admiral)
 library(metacore)
 library(metatools)
 library(datasetjson)
 
 ## Load datasets ------------
-dat_to_load <- list(
-  ds = file.path(path$sdtm, "ds.json"),
-  adsl = file.path(path$adam_json, "adsl.json"),
-  adae = file.path(path$adam_json, "adae.json")
-)
+# dat_to_load <- list(
+#   ds = file.path(path$sdtm, "ds.json"),
+#   adsl = file.path(path$adam, "adsl.json"),
+#   adae = file.path(path$adam, "adae.json")
+# )
+# 
+# datasets <- map(
+#   dat_to_load,
+#   ~ convert_blanks_to_na(read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE))
+# )
 
-datasets <- map(
-  dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
-)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
+adae <- read_dataset_json(file.path(path$adam, "adae.json"), decimals_as_floats = TRUE)
+ds <- read_dataset_json(file.path(path$sdtm, "ds.json"), decimals_as_floats = TRUE)
 
 list2env(datasets, envir = .GlobalEnv)
 
@@ -36,7 +41,7 @@ list2env(datasets, envir = .GlobalEnv)
 # Very noisy function - remove suppress if you want to see warnings
 metacore <- suppressWarnings(
   spec_to_metacore(
-    file.path(path$adam, "adam-pilot-5.xlsx"),
+    file.path(path$adam_reference, "pilot6-specs.xlsx"),
     where_sep_sheet = FALSE,
     quiet = TRUE
   )
@@ -151,4 +156,5 @@ for (col in colnames(adtte)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adtte, adtte_spec, "adtte", path$adam_json)
+save_dataset_json(path$adam, adtte, adtte_spec)
+
