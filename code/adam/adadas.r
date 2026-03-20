@@ -22,22 +22,27 @@ library(datasetjson)
 library(purrr)
 
 ## Load datasets ------------
-dat_to_load <- list(
-  dm = file.path(path$sdtm, "dm.json"),
-  qs = file.path(path$sdtm, "qs.json"),
-  adsl = file.path(path$adam_json, "adsl.json")
-)
+# dat_to_load <- list(
+#   dm = file.path(path$sdtm, "dm.json"),
+#   qs = file.path(path$sdtm, "qs.json"),
+#   adsl = file.path(path$adam_json, "adsl.json")
+# )
+# 
+# datasets <- map(
+#   dat_to_load,
+#   ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
+# )
+# 
+# list2env(datasets, envir = .GlobalEnv)
 
-datasets <- map(
-  dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
-)
 
-list2env(datasets, envir = .GlobalEnv)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
+dm <- read_dataset_json(file.path(path$sdtm, "dm.json"), decimals_as_floats = TRUE)
+qs <- read_dataset_json(file.path(path$sdtm, "qs.json"), decimals_as_floats = TRUE)
 
 ## Load dataset specs -----------
 metacore <- spec_to_metacore(
-  file.path(path$adam, "pilot6-specs.xlsx"),
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
   quiet = TRUE
 )
@@ -203,4 +208,4 @@ for (col in colnames(adas)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adas, adadas_spec, "adadas", path$adam_json)
+save_dataset_json(path$adam, adas, adadas_spec)

@@ -30,7 +30,7 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 
 # Load define.xml metadata
 advs_spec <- define_to_metacore(
-  path$define_path,
+  path$adam_reference,
   quiet = TRUE
 ) %>%
   select_dataset("ADVS")
