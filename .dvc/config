@@ -1,0 +1,5 @@
+[core]
+    remote = myremote
+['remote "myremote"']
+    url = s3://rconsortium-pilots
+    endpointurl = https://s3.us-east-1.amazonaws.com

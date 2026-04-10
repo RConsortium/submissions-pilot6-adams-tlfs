@@ -1,3 +1,9 @@
 # Ignore everything in this directory, as files are stored as part of the release
-*
+
 !.gitignore
+/adsl.json
+/adlbh.json
+/adae.json
+/adtte.json
+/adadas.json
+/adlbc.json

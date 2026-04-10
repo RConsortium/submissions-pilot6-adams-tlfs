@@ -37,13 +37,6 @@ datasets <- map(
 
 list2env(datasets, envir = .GlobalEnv)
 
-format_sitegr1 <- function(x) {
-  case_when(
-    x %in% c("702", "706", "707", "711", "714", "715", "717") ~ "900",
-    TRUE ~ x
-  )
-}
-
 ## Load dataset specs -------------
 # Very noisy function - remove suppress if you want to see warnings
 metacore <- spec_to_metacore(
@@ -320,7 +313,12 @@ adsl07 <- adsl06 %>%
 ## Site group ----------
 # Grouping by SITEID, TRT01A to get the count fewer than 3 patients in any one treatment group.
 adsl07 <- adsl07 %>%
-  mutate(SITEGR1 = format_sitegr1(SITEID))
+  mutate(SITEGR1 = 
+           case_when(
+             SITEID %in% c("702", "706", "707", "711", "714", "715", "717") ~ "900",
+             TRUE ~ SITEID
+           ))
+
 
 # Export to xpt ----------------
 adsl <- adsl07 %>%
