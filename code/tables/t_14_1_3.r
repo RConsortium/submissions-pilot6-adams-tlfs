@@ -166,7 +166,7 @@ gt_table %>%
     footer = fancyfoot(
       fancyrow(
         left = paste0(
-          "Note: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population;"
+          "Note: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population,"
         )
       ),
       fancyrow(
