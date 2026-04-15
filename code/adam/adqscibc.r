@@ -28,10 +28,16 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 # ----------------------------------------------------------------------------
 # LOAD METADATA
 # ----------------------------------------------------------------------------
-adcibc_spec <- define_to_metacore(
-  path$define_path,
+## Load dataset specs -------------
+# Very noisy function - remove suppress if you want to see warnings
+metacore <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
   quiet = TRUE
-) %>%
+)
+
+# Get the specifications for the dataset we are currently building
+adcibc_spec <- metacore %>%
   select_dataset("ADCIBC")
 
 # ----------------------------------------------------------------------------

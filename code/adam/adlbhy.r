@@ -23,7 +23,7 @@ library(datasetjson)
 # Load Data ---------------------------------------------------------------
 
 dat_to_load <- list(
-  adlbc = file.path(path$adam_reference, "adlbc.json")
+  adlbc = file.path(path$adam, "adlbc.json")
 )
 
 datasets <- map(
