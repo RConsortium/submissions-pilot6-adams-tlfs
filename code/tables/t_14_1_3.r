@@ -87,9 +87,6 @@ site_counts_wide <- site_counts %>%
     values_from = c(itt, eff, com),
     names_glue = "{trt01p}_{.value}"
   ) %>%
-  mutate(
-    pooled_id = if_else(duplicated(pooled_id), "", pooled_id)
-  ) %>%
   select(
     pooled_id,
     site_id,
@@ -108,6 +105,8 @@ total_row <- totals_by_trt %>%
   select(colnames(site_counts_wide))
 
 t_14_1_3_ard <- bind_rows(site_counts_wide, total_row)
+gt_display_data <- t_14_1_3_ard %>%
+  mutate(pooled_id = if_else(duplicated(pooled_id) & pooled_id != "TOTAL", "", pooled_id))
 
 # ----------------------------------------------------------------------------
 # Output data
@@ -123,7 +122,7 @@ n_low <- totals_by_trt %>% filter(trt01p == "Xanomeline Low Dose") %>% pull(itt)
 n_high <- totals_by_trt %>% filter(trt01p == "Xanomeline High Dose") %>% pull(itt)
 n_total <- totals_by_trt %>% filter(trt01p == "Total") %>% pull(itt)
 
-gt_table <- t_14_1_3_ard %>%
+gt_table <- gt_display_data %>%
   gt() %>%
   cols_label(
     pooled_id = "Pooled Id",
@@ -166,7 +165,7 @@ gt_table %>%
     footer = fancyfoot(
       fancyrow(
         left = paste0(
-          "Note: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population,"
+          "Note: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population."
         )
       ),
       fancyrow(
