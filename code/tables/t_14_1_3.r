@@ -125,8 +125,8 @@ n_total <- totals_by_trt %>% filter(trt01p == "Total") %>% pull(itt)
 gt_table <- gt_display_data %>%
   gt() %>%
   cols_label(
-    pooled_id = "Pooled Id",
-    site_id = "Site Id",
+    pooled_id = "Pooled ID",
+    site_id = "Site ID",
     `Placebo_itt` = "ITT", `Placebo_eff` = "Eff", `Placebo_com` = "Com",
     `Xanomeline Low Dose_itt` = "ITT", `Xanomeline Low Dose_eff` = "Eff", `Xanomeline Low Dose_com` = "Com",
     `Xanomeline High Dose_itt` = "ITT", `Xanomeline High Dose_eff` = "Eff", `Xanomeline High Dose_com` = "Com",
