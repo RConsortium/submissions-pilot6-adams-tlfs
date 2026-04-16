@@ -166,7 +166,7 @@ build_table_rows <- function(param_df, param_label) {
   to_wide <- function(df, value_col) {
     df %>%
       mutate(col = paste(TRTA, baseline_status, sep = COL_SEPARATOR)) %>%
-      transmute(col, value = .data[[value_col]]) %>%
+      transmute(col, value = as.character(.data[[value_col]])) %>%
       pivot_wider(names_from = col, values_from = value)
   }
 
