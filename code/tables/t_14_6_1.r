@@ -18,6 +18,8 @@ library(datasetjson)
 ULN_THRESHOLD <- 1.5
 TREATMENT_VISIT_MIN <- 3
 TREATMENT_VISIT_MAX <- 12
+TRT_LEVELS <- c("Placebo", "Xanomeline Low Dose", "Xanomeline High Dose")
+COL_SEPARATOR <- "__"
 
 convert_blanks_to_na_local <- function(df) {
   df %>%
@@ -121,7 +123,7 @@ calc_cmh_pvalue <- function(param_df) {
       !is.na(treatment_status)
     ) %>%
     mutate(
-      TRTA = factor(TRTA, levels = c("Placebo", "Xanomeline Low Dose", "Xanomeline High Dose")),
+      TRTA = factor(TRTA, levels = TRT_LEVELS),
       baseline_status = factor(baseline_status, levels = c("Normal", "High")),
       treatment_status = factor(treatment_status, levels = c("Normal", "High"))
     )
@@ -143,18 +145,17 @@ format_cell <- function(numerator, denominator) {
 }
 
 build_table_rows <- function(param_df, param_label) {
-  trt_levels <- c("Placebo", "Xanomeline Low Dose", "Xanomeline High Dose")
   base_levels <- c("Normal", "High")
   shift_levels <- c("Normal", "High")
 
   n_df <- param_df %>%
     count(TRTA, baseline_status, name = "n") %>%
-    complete(TRTA = trt_levels, baseline_status = base_levels, fill = list(n = 0))
+    complete(TRTA = TRT_LEVELS, baseline_status = base_levels, fill = list(n = 0))
 
   shift_df <- param_df %>%
     count(TRTA, baseline_status, treatment_status, name = "n_shift") %>%
     complete(
-      TRTA = trt_levels,
+      TRTA = TRT_LEVELS,
       baseline_status = base_levels,
       treatment_status = shift_levels,
       fill = list(n_shift = 0)
@@ -164,7 +165,7 @@ build_table_rows <- function(param_df, param_label) {
 
   to_wide <- function(df, value_col) {
     df %>%
-      mutate(col = paste(TRTA, baseline_status, sep = "__")) %>%
+      mutate(col = paste(TRTA, baseline_status, sep = COL_SEPARATOR)) %>%
       transmute(col, value = .data[[value_col]]) %>%
       pivot_wider(names_from = col, values_from = value)
   }
@@ -196,6 +197,20 @@ build_table_rows <- function(param_df, param_label) {
     )
 }
 
+empty_table_row <- function() {
+  tibble::tibble(
+    PARAM = "",
+    Shift = "",
+    Placebo__Normal = "",
+    Placebo__High = "",
+    `Xanomeline Low Dose__Normal` = "",
+    `Xanomeline Low Dose__High` = "",
+    `Xanomeline High Dose__Normal` = "",
+    `Xanomeline High Dose__High` = "",
+    p_value = ""
+  )
+}
+
 # Load Data ---------------------------------------------------------------
 adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
   convert_blanks_to_na_local()
@@ -211,17 +226,7 @@ t_14_6_1 <- bind_rows(
     shift_subject %>% filter(PARAM == "Transaminase 1.5 x ULN"),
     "Transaminase 1.5 x ULN"
   ),
-  tibble::tibble(
-    PARAM = "",
-    Shift = "",
-    Placebo__Normal = "",
-    Placebo__High = "",
-    `Xanomeline Low Dose__Normal` = "",
-    `Xanomeline Low Dose__High` = "",
-    `Xanomeline High Dose__Normal` = "",
-    `Xanomeline High Dose__High` = "",
-    p_value = ""
-  ),
+  empty_table_row(),
   build_table_rows(
     shift_subject %>% filter(PARAM == "Total Bili 1.5 x ULN and Transaminase 1.5 x ULN"),
     "Total Bili 1.5 x ULN and Transaminase 1.5 x ULN"
