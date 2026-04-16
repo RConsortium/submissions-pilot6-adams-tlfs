@@ -34,6 +34,10 @@ adsl <- read_dataset_json(
   rename_with(tolower) %>%
   select(usubjid, siteid, sitegr1, trt01p, ittfl, efffl, comp24fl)
 
+adsl <- read_dataset_json(
+  file.path(path$adam, "adsltest.json")
+)
+
 # ----------------------------------------------------------------------------
 # Prepare data
 # ----------------------------------------------------------------------------
@@ -62,7 +66,7 @@ adsl_total <- bind_rows(
   mutate(trt01p = factor(as.character(trt01p), levels = trt_levels))
 
 adsl_site_combined <- adsl_total %>%
-  mutate(site_combined = paste(sep = "#", sitegr1, siteid))
+  mutate(siteid = paste(sep = "#", sitegr1, siteid))
 
 # ----------------------------------------------------------------------------
 # Get table summary data
@@ -80,8 +84,12 @@ adsl_transposed_by_pop <- adsl_site_combined %>%
   ) %>%
   filter(value == "Y") %>%
   # Map population variable names to short labels for column headers
-  mutate(population = recode(population, !!!pop_label_map)) %>%
-  arrange(sitegr1, siteid)
+  mutate(population =
+      factor(recode(population, !!!pop_label_map),
+        levels = unname(pop_label_map)
+      )
+  ) %>%
+  arrange(sitegr1, siteid, population)
 
 # tbl_summary: columns = trt_pop (combined factor), rows = siteid levels.
 # statistic = "{n}" gives raw counts per cell (no denominator needed).
@@ -92,7 +100,7 @@ t_14_1_3 <- adsl_transposed_by_pop %>%
       ~ .x %>%
       tbl_summary(
         by        = population,
-        include   = site_combined,
+        include   = siteid,
         statistic = all_categorical() ~ "{n}",
         digits    = all_categorical() ~ 0
       ) %>%
@@ -100,15 +108,15 @@ t_14_1_3 <- adsl_transposed_by_pop %>%
       remove_footnote_header(columns = all_stat_cols()),
     .header = "**{strata}**  \n(N = {n})"
   ) %>%
-  # Split site_combined back into sitegr1 and siteid for labeling
+  # Split siteid back into sitegr1 and siteid for labeling
   modify_table_body(
     ~ .x %>%
       mutate(pooled_id = sapply(strsplit(label, "#"), `[`, 1)) %>%
-      mutate(site_id = sapply(strsplit(label, "#"), `[`, 2)) %>%
-      select(pooled_id, site_id, everything())
+      mutate(label = sapply(strsplit(label, "#"), `[`, 2)) %>%
+      select(pooled_id, everything())
   ) %>%
   modify_header(
-    site_id    = "**Site Id**",
+    label    = "**Site Id**",
     pooled_id  = "**Pooled Id**",
   )
 
@@ -126,14 +134,14 @@ saveRDS(t_14_1_3_ard, file.path(path$table_ard, "t_14_1_3.rds"))
 gt_table <-
   t_14_1_3 %>%
   as_gt() %>%
-  cols_align(align = "center", columns = -label) %>%
+  cols_align(align = "right") %>%
   tab_style(
     style = cell_text(align = "center"),
     locations = cells_column_labels(columns = everything())
   ) %>%
   tab_header(
     title = "Table 14-1.03",
-    subtitle = "Summary of Populations"
+    subtitle = "Summary of Number of Subjects by Site"
   )
 
 # Add header and footer using docorator
@@ -146,15 +154,10 @@ gt_table %>%
       fancyrow(left = "Population: All Subjects", center = NA, right = NA)
     ),
     footer = fancyfoot(
-      fancyrow(left = paste0(
-        "NOTE: N in column headers represents number of subjects entered in study (i.e., signed informed consent). ",
-        "The ITT population includes all subjects randomized. ",
-        "The Safety population includes all randomized subjects known to have taken ",
-        "at least one dose of randomized study drug.",
-        "The Efficacy population includes all subjects in the safety ",
-        "population who also have at least one post-baseline ADAS-Cog and CIBIC+ assessment."
-      )
+      fancyrow(left =
+          "NOTE: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population;"
       ),
+      fancyrow(left = "Com: Number of subjects completing Week 24."),
       fancyrow(left = doc_path(), center = NA, right = doc_datetime())
     )
   ) %>%
