@@ -254,7 +254,7 @@ get_trt_n <- function(trt_label) {
     pull(N)
 
   if (length(n_val) == 0) {
-    return(0L)
+    return(NA_integer_)
   }
 
   as.integer(n_val[[1]])
