@@ -5,8 +5,8 @@
 #************************************************************************
 
 # Note to Reviewer
-# To rerun the code below, please refer ADRG appendix.
-# After required package are installed, the path variable needs to be defined
+# To rerun the code below, please refer to the ADRG appendix.
+# After required packages are installed, the path variable needs to be defined
 # in the .Rprofile file.
 
 # Libraries ---------------------------------------------------------------
