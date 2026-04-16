@@ -1,7 +1,7 @@
 #************************************************************************
 # Purpose:     Generate Table 14.6.1 - Shifts of Hy's Law Values During Treatment
 # Input:       ADLBC (+ ADSL for treatment N in headers)
-# Output:      Printed table object t_14_6_1
+# Output:      t_14_6_1.pdf and t_14_6_1.rds
 #************************************************************************
 
 # Note to Reviewer
@@ -13,6 +13,8 @@
 library(dplyr)
 library(tidyr)
 library(datasetjson)
+library(gt)
+library(docorator)
 
 # Helpers ----------------------------------------------------------------
 ULN_THRESHOLD <- 1.5
@@ -133,7 +135,16 @@ calc_cmh_pvalue <- function(param_df) {
   }
 
   cmh_array <- xtabs(~ TRTA + treatment_status + baseline_status, data = cmh_input)
-  as.numeric(stats::mantelhaen.test(cmh_array)$p.value)
+  strata_n <- apply(cmh_array, 3, sum)
+
+  if (any(strata_n <= 1)) {
+    return(NA_real_)
+  }
+
+  tryCatch(
+    as.numeric(stats::mantelhaen.test(cmh_array)$p.value),
+    error = function(e) NA_real_
+  )
 }
 
 format_cell <- function(numerator, denominator) {
@@ -236,6 +247,84 @@ t_14_6_1 <- bind_rows(
 trt_n <- adsl %>%
   filter(SAFFL == "Y") %>%
   count(TRT01A, name = "N")
+
+get_trt_n <- function(trt_label) {
+  n_val <- trt_n %>%
+    filter(TRT01A == trt_label) %>%
+    pull(N)
+
+  if (length(n_val) == 0) {
+    return(0L)
+  }
+
+  as.integer(n_val[[1]])
+}
+
+table_output <- if (!is.null(path$table_output)) path$table_output else file.path(getwd(), "data/tables/pdf")
+table_ard <- if (!is.null(path$table_ard)) path$table_ard else file.path(getwd(), "data/tables/ard")
+
+dir.create(table_output, recursive = TRUE, showWarnings = FALSE)
+dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
+
+saveRDS(t_14_6_1, file.path(table_ard, "t_14_6_1.rds"))
+
+gt_table <- t_14_6_1 %>%
+  gt() %>%
+  cols_label(
+    PARAM = "",
+    Shift = "",
+    Placebo__Normal = "Normal",
+    Placebo__High = "High",
+    `Xanomeline Low Dose__Normal` = "Normal",
+    `Xanomeline Low Dose__High` = "High",
+    `Xanomeline High Dose__Normal` = "Normal",
+    `Xanomeline High Dose__High` = "High",
+    p_value = "P-value"
+  ) %>%
+  tab_spanner(
+    label = md(paste0("Placebo<br>(N=", get_trt_n("Placebo"), ")")),
+    columns = c(Placebo__Normal, Placebo__High)
+  ) %>%
+  tab_spanner(
+    label = md(paste0("Xanomeline Low Dose<br>(N=", get_trt_n("Xanomeline Low Dose"), ")")),
+    columns = c(`Xanomeline Low Dose__Normal`, `Xanomeline Low Dose__High`)
+  ) %>%
+  tab_spanner(
+    label = md(paste0("Xanomeline High Dose<br>(N=", get_trt_n("Xanomeline High Dose"), ")")),
+    columns = c(`Xanomeline High Dose__Normal`, `Xanomeline High Dose__High`)
+  ) %>%
+  tab_header(
+    title = "Table 14-6.01",
+    subtitle = "Shifts of Hy's Law Values During Treatment"
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = c(
+      Placebo__Normal,
+      Placebo__High,
+      `Xanomeline Low Dose__Normal`,
+      `Xanomeline Low Dose__High`,
+      `Xanomeline High Dose__Normal`,
+      `Xanomeline High Dose__High`,
+      p_value
+    )
+  ) %>%
+  cols_align(align = "left", columns = c(PARAM, Shift))
+
+gt_table %>%
+  as_docorator(
+    display_name = "t_14_6_1",
+    display_loc = table_output,
+    header = fancyhead(
+      fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
+      fancyrow(left = "Population: Safety Population", center = NA, right = NA)
+    ),
+    footer = fancyfoot(
+      fancyrow(left = "CMH p-value from general association test stratified by baseline status."),
+      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+    )
+  ) %>%
+  render_pdf(table_output)
 
 print(trt_n)
 print(t_14_6_1)
