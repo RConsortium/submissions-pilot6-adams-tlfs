@@ -138,7 +138,7 @@ format_cell <- function(numerator, denominator) {
   if (is.na(denominator) || denominator == 0) {
     return("0")
   }
-  pct <- floor((100 * numerator / denominator) + 0.5)
+  pct <- round(100 * numerator / denominator)
   sprintf("%d (%d%%)", numerator, pct)
 }
 
