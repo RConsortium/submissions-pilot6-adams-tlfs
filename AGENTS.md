@@ -35,6 +35,14 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 - Inputs are usually read with `read_dataset_json(..., decimals_as_floats = TRUE)`.
 - Outputs are written via `save_dataset_json()` utility in `code/utils/save_dataset_json.r`.
 
+### TLF output conventions (docorator)
+- For table/listing/figure outputs, use `gt` + `docorator` for PDF rendering.
+- Keep table programs under `code/tables/` and produce both:
+  - ARD-style RDS output (for reproducible intermediate data),
+  - PDF output (final review artifact).
+- Use configured path entries (for example `path$table_ard` and `path$table_output`) for output locations.
+- Keep header/footer/footnote formatting in the table script so reviewer-facing output remains traceable and reproducible.
+
 ## Tidyverse style expectations for future changes
 
 - Use `<-` for assignment.
