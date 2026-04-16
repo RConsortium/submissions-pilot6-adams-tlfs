@@ -260,8 +260,8 @@ get_trt_n <- function(trt_label) {
   as.integer(n_val[[1]])
 }
 
-table_output <- if (!is.null(path$table_output)) path$table_output else file.path(getwd(), "data/tables/pdf")
-table_ard <- if (!is.null(path$table_ard)) path$table_ard else file.path(getwd(), "data/tables/ard")
+table_output <- path$table_output
+table_ard <- path$table_ard
 
 dir.create(table_output, recursive = TRUE, showWarnings = FALSE)
 dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
@@ -294,7 +294,7 @@ gt_table <- t_14_6_1 %>%
     columns = c(`Xanomeline High Dose__Normal`, `Xanomeline High Dose__High`)
   ) %>%
   tab_header(
-    title = "Table 14-6.01",
+    title = "Table 14.6.1",
     subtitle = "Shifts of Hy's Law Values During Treatment"
   ) %>%
   cols_align(
