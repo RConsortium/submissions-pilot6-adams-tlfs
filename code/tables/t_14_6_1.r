@@ -15,6 +15,10 @@ library(tidyr)
 library(datasetjson)
 
 # Helpers ----------------------------------------------------------------
+ULN_THRESHOLD <- 1.5
+TREATMENT_VISIT_MIN <- 3
+TREATMENT_VISIT_MAX <- 12
+
 convert_blanks_to_na_local <- function(df) {
   df %>%
     mutate(across(where(is.character), ~ na_if(.x, "")))
@@ -29,14 +33,18 @@ derive_hys_shift <- function(adlbc) {
     filter(PARAMCD %in% c("ALT", "AST", "BILI"), AVISIT == "Baseline")
 
   adlbc_trt <- adlbc_clean %>%
-    filter(PARAMCD %in% c("ALT", "AST", "BILI"), AVISITN >= 3, AVISITN <= 12)
+    filter(
+      PARAMCD %in% c("ALT", "AST", "BILI"),
+      AVISITN >= TREATMENT_VISIT_MIN,
+      AVISITN <= TREATMENT_VISIT_MAX
+    )
 
   base_flags <- adlbc_base %>%
     group_by(USUBJID, TRTA, SAFFL) %>%
     summarise(
-      trans_base_high = as.integer(any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 1.5, na.rm = TRUE)),
+      trans_base_high = as.integer(any(PARAMCD %in% c("ALT", "AST") & R2A1HI > ULN_THRESHOLD, na.rm = TRUE)),
       trans_base_has_result = any(PARAMCD %in% c("ALT", "AST") & !is.na(R2A1HI)),
-      bili_base_high = as.integer(any(PARAMCD == "BILI" & R2A1HI > 1.5, na.rm = TRUE)),
+      bili_base_high = as.integer(any(PARAMCD == "BILI" & R2A1HI > ULN_THRESHOLD, na.rm = TRUE)),
       bili_base_has_result = any(PARAMCD == "BILI" & !is.na(R2A1HI)),
       .groups = "drop"
     ) %>%
@@ -48,9 +56,9 @@ derive_hys_shift <- function(adlbc) {
   visit_flags <- adlbc_trt %>%
     group_by(USUBJID, TRTA, AVISITN) %>%
     summarise(
-      trans_high = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 1.5, na.rm = TRUE),
+      trans_high = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > ULN_THRESHOLD, na.rm = TRUE),
       trans_has_result = any(PARAMCD %in% c("ALT", "AST") & !is.na(R2A1HI)),
-      bili_high = any(PARAMCD == "BILI" & R2A1HI > 1.5, na.rm = TRUE),
+      bili_high = any(PARAMCD == "BILI" & R2A1HI > ULN_THRESHOLD, na.rm = TRUE),
       bili_has_result = any(PARAMCD == "BILI" & !is.na(R2A1HI)),
       .groups = "drop"
     ) %>%
@@ -130,7 +138,7 @@ format_cell <- function(numerator, denominator) {
   if (is.na(denominator) || denominator == 0) {
     return("0")
   }
-  pct <- round(100 * numerator / denominator, 0)
+  pct <- floor((100 * numerator / denominator) + 0.5)
   sprintf("%d (%d%%)", numerator, pct)
 }
 
