@@ -38,14 +38,15 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 
 ### TLF output conventions (docorator)
 - For table/listing/figure outputs, use `gt` + `docorator` for PDF rendering.
-- Table/listing/figure program naming convention:
+- TLF program naming convention:
   - `t_<name>.r` for tables,
   - `l_<name>.r` for listings,
   - `f_<name>.r` for figures.
 - Output artifact naming should mirror program naming (for example, `t_<name>.rds` and `t_<name>.pdf`).
-- Keep TLF programs under `code/tables/` (manually create `code/tables/` in your branch if it is absent) and produce both:
+- Keep TLF programs under `code/tables/` and produce both:
   - ARD-style RDS output (for reproducible intermediate data),
   - PDF output (final review artifact).
+- If `code/tables/` is absent in your branch, create it manually before adding TLF programs.
 - Use configured path entries (for example `path$table_ard` and `path$table_output`) for output locations.
 - Suggested table program flow:
   1. header comments (purpose/input/output),
