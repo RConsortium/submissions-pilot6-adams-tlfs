@@ -152,7 +152,7 @@ tidy_section <- function(wide_df, section_label) {
   wide_df %>%
     select(all_of(c("PARAM", "PARCAT1", "PARAMN", col_order[-1]))) %>%
     mutate(section = section_label) %>%
-    arrange(PARAMN)
+    arrange(desc(PARAMN))
 }
 
 display_data <- bind_rows(
