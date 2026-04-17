@@ -81,6 +81,9 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 - Avoid hidden side effects; scripts should only create/modify expected output datasets.
 - Validate assumptions with explicit checks for key edge cases (missing dates, mixed treatments, absent joins).
 - Reuse `code/utils` helpers when logic is shared across domains.
+- When adding new helper functions, include a short high-level overview of created functions (purpose and expected inputs/outputs) in script documentation or PR summary.
+- Before introducing a new helper, scan existing scripts/utilities for overlapping logic that can be re-used or consolidated.
+- If overlap is identified, propose a reusable utility in `code/utils/` and update call sites when in scope; otherwise, explicitly alert developers with the consolidation opportunity so they can decide.
 - Keep comments focused on ADaM derivation intent and reviewer traceability.
 
 ## Validation notes
