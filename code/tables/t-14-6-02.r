@@ -20,8 +20,7 @@ adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_float
 adlbh <- read_dataset_json(file.path(path$adam, "adlbh.json"), decimals_as_floats = TRUE)
 adsl  <- read_dataset_json(file.path(path$adam, "adsl.json"),  decimals_as_floats = TRUE)
 
-# Note: ADLBC uses ANL01FL = "Y" as the analysis flag.
-# ADLBH does not have ANL01FL populated; use SAFFL = "Y" + AENTMTFL = "Y".
+# Note: ADLBC uses ANL01FL = "Y" and ADLBH uses AENTMTFL = "Y" as analysis flags.
 
 # Derivations -----------------------------------------------------------
 
@@ -32,17 +31,10 @@ trt_n <- adsl %>%
   arrange(TRT01A)
 
 ## Helper: derive per-arm Low/Normal/High counts + % + p-value ---------
-# anl_flag: character name of analysis flag column ("ANL01FL" for ADLBC,
-#            NULL to use AENTMTFL for ADLBH)
+# anl_flag: character name of analysis flag column
 derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
   # Subset to analysis population: safety + analysis flag
-  # ADLBC: ANL01FL = "Y" (post-baseline analysis records)
-  # ADLBH: AENTMTFL = "Y" (on-treatment records; ANL01FL not populated)
-  if (!is.null(anl_flag)) {
-    filtered <- df[df$SAFFL == "Y" & !is.na(df[[anl_flag]]) & df[[anl_flag]] == "Y", ]
-  } else {
-    filtered <- df[df$SAFFL == "Y" & !is.na(df$AENTMTFL) & df$AENTMTFL == "Y", ]
-  }
+  filtered <- df[df$SAFFL == "Y" & !is.na(df[[anl_flag]]) & df[[anl_flag]] == "Y", ]
 
   # Worst post-baseline record per subject per parameter:
   # Low (1) > High (2) > Normal (3)
@@ -109,7 +101,7 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
 
 ## Run derivations for CHEM and HEM ------------------------------------
 chem <- derive_lab_counts(adlbc, anl_flag = "ANL01FL")
-hem  <- derive_lab_counts(adlbh, anl_flag = NULL)
+hem  <- derive_lab_counts(adlbh, anl_flag = "AENTMTFL")
 
 ## Pivot wide: one row per PARAM, columns = TRT x LBNRIND_grp ----------
 pivot_wide <- function(counts, pvals) {
