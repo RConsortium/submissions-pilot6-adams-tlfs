@@ -261,10 +261,17 @@ build_gt <- function(data) {
     ) %>%
     opt_table_font(font = "Courier New") %>%
     cols_align(align = "right", columns = -PARAM) %>%
+    cols_width(
+      PARAM ~ px(200),
+      starts_with("Placebo||") ~ px(80),
+      starts_with("Xanomeline") ~ px(80)
+    ) %>%
     tab_options(
-      table.font.size      = px(9),
-      data_row.padding     = px(1),
-      row_group.font.weight = "bold"
+      table.font.size      = px(8),
+      data_row.padding     = px(0.5),
+      row_group.font.weight = "bold",
+      table.border.top.style = "hidden",
+      table.border.bottom.style = "hidden"
     )
 
   gt_tbl
@@ -291,8 +298,8 @@ gt_tbl %>%
       paperheight = "8.5in",
       left = "0.5in",
       right = "0.5in",
-      top = "0.75in",
-      bottom = "0.75in",
+      top = "0.5in",
+      bottom = "0.5in",
       headheight = "24pt",
       footskip = "24pt"
     )
