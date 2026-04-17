@@ -43,7 +43,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
   - `l_<name>.r` for listings,
   - `f_<name>.r` for figures.
 - Output artifact naming should mirror program naming (for example, `t_<name>.rds` and `t_<name>.pdf`).
-- Keep TLF programs under `code/tables/` (create this folder when adding first TLF script in a branch) and produce both:
+- Keep TLF programs under `code/tables/` (create this folder when adding first TLF program in a branch) and produce both:
   - ARD-style RDS output (for reproducible intermediate data),
   - PDF output (final review artifact).
 - Use configured path entries (for example `path$table_ard` and `path$table_output`) for output locations.
