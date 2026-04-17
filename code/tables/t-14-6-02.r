@@ -13,6 +13,7 @@ library(dplyr)
 library(tidyr)
 library(datasetjson)
 library(gt)
+library(docorator)
 
 ## Load datasets --------------------------------------------------------
 adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_floats = TRUE)
@@ -159,9 +160,24 @@ display_data <- bind_rows(
   tidy_section(hem_wide,  "HEMATOLOGY")
 )
 
+# Output locations ------------------------------------------------------
+table_output <- if (is.null(path$table_output)) {
+  file.path(getwd(), "data/tables/pdf")
+} else {
+  path$table_output
+}
+
+table_ard <- if (is.null(path$table_ard)) {
+  file.path(getwd(), "data/tables/ard")
+} else {
+  path$table_ard
+}
+
+dir.create(table_output, recursive = TRUE, showWarnings = FALSE)
+dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
+
 # ARD output (intermediate) --------------------------------------------
-dir.create(file.path(getwd(), "data/tables"), showWarnings = FALSE)
-saveRDS(display_data, file.path(getwd(), "data/tables/t-14-6-02.rds"))
+saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
 
 # Table rendering with gt -----------------------------------------------
 
@@ -243,15 +259,6 @@ build_gt <- function(data) {
       label = md("**CHEMISTRY**  \n----------"),
       rows  = data$section == "CHEMISTRY"
     ) %>%
-    tab_footnote(
-      footnote = "[1] Chi-square p-value (treatment arm comparison of abnormal vs normal).",
-      locations = cells_column_labels(columns = p_fmt)
-    ) %>%
-    tab_source_note(
-      source_note = md(
-        "Protocol: CDISCPILOT01 | Population: Safety"
-      )
-    ) %>%
     opt_table_font(font = "Courier New") %>%
     cols_align(align = "right", columns = -PARAM) %>%
     tab_options(
@@ -266,5 +273,35 @@ build_gt <- function(data) {
 gt_tbl <- build_gt(display_data)
 
 ## Save PDF output ------------------------------------------------------
-gtsave(gt_tbl, file.path(getwd(), "data/tables/t-14-6-02.pdf"))
-message("Table 14.6.02 saved: data/tables/t-14-6-02.rds and data/tables/t-14-6-02.pdf")
+gt_tbl %>%
+  as_docorator(
+    display_name = "t-14-6-02",
+    display_loc = table_output,
+    save_object = FALSE,
+    header = fancyhead(
+      fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
+      fancyrow(left = "Population: Safety", center = NA, right = NA)
+    ),
+    footer = fancyfoot(
+      fancyrow(left = "[1] Chi-square p-value (treatment arm comparison of abnormal vs normal)."),
+      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+    ),
+    geometry = geom_set(
+      paperwidth = "11in",
+      paperheight = "8.5in",
+      left = "0.5in",
+      right = "0.5in",
+      top = "0.75in",
+      bottom = "0.75in",
+      headheight = "24pt",
+      footskip = "24pt"
+    )
+  ) %>%
+  render_pdf(table_output)
+
+message(
+  "Table 14.6.02 saved: ",
+  file.path(table_ard, "t-14-6-02.rds"),
+  " and ",
+  file.path(table_output, "t-14-6-02.pdf")
+)
