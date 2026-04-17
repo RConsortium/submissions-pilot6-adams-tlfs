@@ -1,3 +1,2 @@
-# Ignore everything in this directory, as files are stored as part of the release
-*
-!.gitignore
+/t_14_1_1.rds
+/t_14_6_1.rds
