@@ -84,7 +84,7 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
     left_join(param_n, by = c("PARAM", "TRTA")) %>%
     mutate(
       pct  = ifelse(!is.na(N_param) & N_param > 0, n / N_param * 100, 0),
-      cell = sprintf("%2d(%3.0f%%)", n, pct)
+      cell = sprintf("%d(%d%%)", n, round(pct))
     )
 
   # Chi-square p-value per PARAM (Low+High vs Normal, across arms)
@@ -267,7 +267,7 @@ build_gt <- function(data) {
       starts_with("Xanomeline") ~ px(80)
     ) %>%
     tab_options(
-      table.font.size      = px(8),
+      table.font.size      = px(7),
       data_row.padding     = px(0.5),
       row_group.font.weight = "bold",
       table.border.top.style = "hidden",
