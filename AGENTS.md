@@ -17,6 +17,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 - Lint config is in `.lintr`.
 - Line length target is **120** characters.
 - Pipe style is enforced as `%>%` (not base `|>`).
+- If a migration to base `|>` is desired, update `.lintr` and affected scripts together in the same change.
 
 ### Script structure
 - Scripts commonly follow:
@@ -37,11 +38,30 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 
 ### TLF output conventions (docorator)
 - For table/listing/figure outputs, use `gt` + `docorator` for PDF rendering.
-- Keep table programs under `code/tables/` and produce both:
+- Table/listing/figure program naming convention:
+  - `t_<name>.r` for tables,
+  - `l_<name>.r` for listings,
+  - `f_<name>.r` for figures.
+- Output artifact naming should mirror program naming (for example, `t_<name>.rds` and `t_<name>.pdf`).
+- Keep TLF programs under `code/tables/` (create this folder when adding first TLF script in a branch) and produce both:
   - ARD-style RDS output (for reproducible intermediate data),
   - PDF output (final review artifact).
 - Use configured path entries (for example `path$table_ard` and `path$table_output`) for output locations.
+- Suggested table program flow:
+  1. header comments (purpose/input/output),
+  2. library loading,
+  3. load ADaM source dataset(s) (typically from `data/adam/`),
+  4. staged derivations for ARD/table-ready data,
+  5. formatting/labels/footnotes,
+  6. render with `gt` + `docorator`,
+  7. save ARD `.rds` and final `.pdf`.
+- Before rendering, validate input assumptions (required variables, join keys, and unexpected missingness patterns) so issues are flagged early.
 - Keep header/footer/footnote formatting in the table script so reviewer-facing output remains traceable and reproducible.
+- Use define metadata (`data/adam_reference/define.xml`) and ADaM variable lineage to keep table columns traceable to source domains.
+- DVC workflow for TLF work:
+  - run `dvc pull` before table generation when SDTM/ADaM inputs may be missing or stale,
+  - run `dvc add` for generated table artifacts that are intended to be tracked,
+  - commit corresponding `.dvc` files with program changes.
 
 ## Tidyverse style expectations for future changes
 
