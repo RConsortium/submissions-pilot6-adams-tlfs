@@ -67,7 +67,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 ## Tidyverse style expectations for future changes
 
 - Use `<-` for assignment.
-- Prefer `%>%` pipelines for multi-step transformations.
+- Prefer `|>` pipelines for multi-step transformations.
 - Prefer `snake_case` for local object names and helper functions.
 - Keep CDISC variable names in canonical uppercase where required by standards.
 - Use `dplyr::mutate()`, `dplyr::select()`, `dplyr::left_join()`, etc. in clear staged steps (avoid large monolithic mutations).
