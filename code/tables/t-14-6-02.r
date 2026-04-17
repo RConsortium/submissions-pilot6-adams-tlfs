@@ -42,6 +42,12 @@ if (length(missing_adlbh) > 0) {
   stop(sprintf("ADLBH is missing required columns: %s", paste(missing_adlbh, collapse = ", ")))
 }
 
+# Helper function overview ----------------------------------------------
+# derive_lab_counts(df, anl_flag): returns list(counts, pvals) for one source dataset.
+# pivot_wide(counts, pvals): reshapes counts into treatment-by-range columns and appends p-values.
+# tidy_section(wide_df, section_label): normalizes columns for display and tags section labels.
+# build_gt(data): renders the formatted gt table object used for PDF output.
+
 # Derivations -----------------------------------------------------------
 
 ## Treatment N counts (Safety population) ------------------------------
@@ -49,12 +55,6 @@ trt_n <- adsl %>%
   filter(SAFFL == "Y") %>%
   count(TRT01A, name = "N") %>%
   arrange(TRT01A)
-
-## Helper function overview ----------------------------------------------
-# derive_lab_counts(df, anl_flag): returns list(counts, pvals) for one source dataset.
-# pivot_wide(counts, pvals): reshapes counts into treatment-by-range columns and appends p-values.
-# tidy_section(wide_df, section_label): normalizes columns for display and tags section labels.
-# build_gt(data): renders the formatted gt table object used for PDF output.
 
 ## Helper: derive per-arm Low/Normal/High counts + % + p-value ---------
 # anl_flag: character name of analysis flag column
