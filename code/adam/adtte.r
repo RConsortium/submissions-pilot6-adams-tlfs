@@ -20,22 +20,9 @@ library(metatools)
 library(datasetjson)
 
 ## Load datasets ------------
-# dat_to_load <- list(
-#   ds = file.path(path$sdtm, "ds.json"),
-#   adsl = file.path(path$adam, "adsl.json"),
-#   adae = file.path(path$adam, "adae.json")
-# )
-# 
-# datasets <- map(
-#   dat_to_load,
-#   ~ convert_blanks_to_na(read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE))
-# )
-
 adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
 adae <- read_dataset_json(file.path(path$adam, "adae.json"), decimals_as_floats = TRUE)
 ds <- read_dataset_json(file.path(path$sdtm, "ds.json"), decimals_as_floats = TRUE)
-
-list2env(datasets, envir = .GlobalEnv)
 
 ## Load dataset specs -----------
 # Very noisy function - remove suppress if you want to see warnings
@@ -157,4 +144,3 @@ for (col in colnames(adtte)) {
 
 # Saving the dataset as datasetjson format --------------
 save_dataset_json(path$adam, adtte, adtte_spec)
-

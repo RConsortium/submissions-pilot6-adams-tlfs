@@ -40,18 +40,19 @@ adlbhy_spec <- suppressWarnings(
     file.path(path$adam_reference, "pilot6-specs.xlsx"),
     where_sep_sheet = FALSE,
     quiet = TRUE
-    )
-  ) %>%
+  )
+) %>%
   select_dataset("ADLBHY")
 
 # Select Parameters from LB -----------------------------------------------
-allowed_avisit <- c("Baseline", "Week 2", "Week 4", "Week 6", "Week 8",
-                    "Week 12", "Week 16", "Week 20", "Week 24")
+allowed_avisit <- c("Baseline", "Week 2", "Week 4", "Week 6", "Week 8", "Week 12", "Week 16", "Week 20", "Week 24")
 
 
 adlbhy_pre <- adlbc %>%
-  filter(PARAMCD %in% c("ALT", "AST", "BILI"),
-         AVISIT %in% allowed_avisit) %>%
+  filter(
+    PARAMCD %in% c("ALT", "AST", "BILI"),
+    AVISIT %in% allowed_avisit
+  ) %>%
   mutate(
     PARAMN = case_when(
       PARAMCD == "ALT" ~ 1,
@@ -75,7 +76,7 @@ adlbhy_pre <- adlbc %>%
   )
 
 # Hys Law -----------------------------------------------------------------
-# BILIHY: BILI > 1.5*ULN
+# BILIHY: Bilirubin > 1.5 times ULN
 bilihy <- adlbhy_pre %>%
   filter(PARAMCD == "BILI") %>%
   mutate(
@@ -108,9 +109,14 @@ hylaw_visits <- adlbhy_pre %>%
   filter(PARAMCD %in% c("ALT", "AST", "BILI")) %>%
   group_by(STUDYID, USUBJID, VISIT, VISITNUM, ADT) %>%
   summarise(
-    across(c(SUBJID, TRTP, TRTPN, TRTA, TRTAN, TRTSDT, TRTEDT,
-             AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX, 
-             COMP24FL, DSRAEFL, SAFFL, AVISIT, AVISITN, ADY, ABLFL), first),
+    across(
+      c(
+        SUBJID, TRTP, TRTPN, TRTA, TRTAN, TRTSDT, TRTEDT,
+        AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX,
+        COMP24FL, DSRAEFL, SAFFL, AVISIT, AVISITN, ADY, ABLFL
+      ),
+      first
+    ),
     has_bili = any(PARAMCD == "BILI" & R2A1HI > 1.5, na.rm = TRUE),
     has_trans = any(PARAMCD %in% c("ALT", "AST") & R2A1HI > 1.5, na.rm = TRUE),
     .groups = "drop"
