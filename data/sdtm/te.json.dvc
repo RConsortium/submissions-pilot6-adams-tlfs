@@ -1,0 +1,5 @@
+outs:
+- md5: 9afb58f7da44e3bd3ecaa55a585c6333
+  size: 1679
+  hash: md5
+  path: te.json

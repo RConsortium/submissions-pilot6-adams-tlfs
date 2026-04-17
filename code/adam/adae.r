@@ -26,7 +26,7 @@ library(datasetjson)
 dat_to_load <- list(
   ae = file.path(path$sdtm, "ae.json"),
   suppae = file.path(path$sdtm, "suppae.json"),
-  adsl = file.path(path$adam_json, "adsl.json")
+  adsl = file.path(path$adam, "adsl.json")
 )
 
 datasets <- map(
@@ -38,7 +38,7 @@ list2env(datasets, envir = .GlobalEnv)
 
 ## Load dataset specs -----------
 metacore <- spec_to_metacore(
-  file.path(path$adam, "adam-pilot-5.xlsx"),
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
   quiet = TRUE
 )
@@ -222,4 +222,5 @@ for (col in colnames(adae)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adae, adae_spec, "adae", path$adam_json)
+save_dataset_json(path$adam, adae, adae_spec)
+

@@ -6,7 +6,8 @@ path <- list(
   table_ard = file.path(getwd(), "data/tables/ard"),
   adam = file.path(getwd(), "data/adam/"),
   programs_adam = file.path(getwd(), "src/adam/"),
-  define_path = file.path(getwd(), "data/adam/define.xml")
+  define_path = file.path(getwd(), "data/adam/define.xml"),
+  utils = file.path(getwd(), "code/utils/")
 )
 
 # Study Metadata ----------------------------------------------------------

@@ -23,6 +23,9 @@ library(purrr)
 library(glue)
 library(datasetjson)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
+
 ## Load datasets ----------------------
 dat_to_load <- c("dm", "ds", "qs", "ex", "qs", "sv", "vs", "sc", "mh")
 
@@ -36,12 +39,10 @@ list2env(datasets, envir = .GlobalEnv)
 
 ## Load dataset specs -------------
 # Very noisy function - remove suppress if you want to see warnings
-metacore <- suppressWarnings(
-  spec_to_metacore(
-    file.path(path$adam, "adam-pilot-5.xlsx"),
-    where_sep_sheet = FALSE,
-    quiet = TRUE
-  )
+metacore <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
+  quiet = TRUE
 )
 
 # Get the specifications for the dataset we are currently building
@@ -312,7 +313,12 @@ adsl07 <- adsl06 %>%
 ## Site group ----------
 # Grouping by SITEID, TRT01A to get the count fewer than 3 patients in any one treatment group.
 adsl07 <- adsl07 %>%
-  mutate(SITEGR1 = format_sitegr1(SITEID))
+  mutate(SITEGR1 = 
+           case_when(
+             SITEID %in% c("702", "706", "707", "711", "714", "715", "717") ~ "900",
+             TRUE ~ SITEID
+           ))
+
 
 # Export to xpt ----------------
 adsl <- adsl07 %>%
@@ -341,4 +347,4 @@ for (col in colnames(adsl)) {
 }
 
 # Saving the dataset as datasetjson format --------------
-write_dataset_json_with_metadata(adsl, adsl_spec, "adsl", path$adam_json)
+save_dataset_json(path$adam, adsl, adsl_spec)
