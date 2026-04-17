@@ -22,6 +22,26 @@ adsl  <- read_dataset_json(file.path(path$adam, "adsl.json"),  decimals_as_float
 
 # Note: ADLBC uses ANL01FL = "Y" and ADLBH uses AENTMTFL = "Y" as analysis flags.
 
+# Input checks -----------------------------------------------------------
+# Validate required columns are present before derivation/rendering.
+required_adsl <- c("SAFFL", "TRT01A")
+required_adlbc <- c("SAFFL", "ANL01FL", "USUBJID", "TRTA", "PARAM", "PARAMN", "PARCAT1", "LBNRIND")
+required_adlbh <- c("SAFFL", "AENTMTFL", "USUBJID", "TRTA", "PARAM", "PARAMN", "PARCAT1", "LBNRIND")
+
+missing_adsl <- setdiff(required_adsl, names(adsl))
+missing_adlbc <- setdiff(required_adlbc, names(adlbc))
+missing_adlbh <- setdiff(required_adlbh, names(adlbh))
+
+if (length(missing_adsl) > 0) {
+  stop(sprintf("ADSL is missing required columns: %s", paste(missing_adsl, collapse = ", ")))
+}
+if (length(missing_adlbc) > 0) {
+  stop(sprintf("ADLBC is missing required columns: %s", paste(missing_adlbc, collapse = ", ")))
+}
+if (length(missing_adlbh) > 0) {
+  stop(sprintf("ADLBH is missing required columns: %s", paste(missing_adlbh, collapse = ", ")))
+}
+
 # Derivations -----------------------------------------------------------
 
 ## Treatment N counts (Safety population) ------------------------------
@@ -29,6 +49,12 @@ trt_n <- adsl %>%
   filter(SAFFL == "Y") %>%
   count(TRT01A, name = "N") %>%
   arrange(TRT01A)
+
+## Helper function overview ----------------------------------------------
+# derive_lab_counts(df, anl_flag): returns list(counts, pvals) for one source dataset.
+# pivot_wide(counts, pvals): reshapes counts into treatment-by-range columns and appends p-values.
+# tidy_section(wide_df, section_label): normalizes columns for display and tags section labels.
+# build_gt(data): renders the formatted gt table object used for PDF output.
 
 ## Helper: derive per-arm Low/Normal/High counts + % + p-value ---------
 # anl_flag: character name of analysis flag column
