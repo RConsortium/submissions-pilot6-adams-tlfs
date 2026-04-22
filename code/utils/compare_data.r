@@ -15,7 +15,7 @@ library(diffdf)       # Data frame comparison
 library(datasetjson)  # Reading Dataset-JSON
 
 # ----------------------------------------------------------------------------
-# Check call syntax
+# CHECKS
 # ----------------------------------------------------------------------------
 
 args <- commandArgs(trailingOnly = TRUE)
