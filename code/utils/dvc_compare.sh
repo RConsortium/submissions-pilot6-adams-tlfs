@@ -103,7 +103,7 @@ status_json=$(dvc status "$file_abs" --json 2>&1) || {
   exit 3
 }
 
-# Check JSON text for the pattern "<basefilename>": "modified" (no Python)
+# Check JSON respose, empty object means there are no changes (possible need to check if the file is modified instead).
 if [ "$status_json" = '{}' ]; then
   echo "File not modified relative to committed DVC version: $file"
   # If no revision specified, we exit
