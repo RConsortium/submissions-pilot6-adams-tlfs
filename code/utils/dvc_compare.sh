@@ -5,6 +5,7 @@ set -euo pipefail
 # Defaults
 vde_path="vde-dataset-viewer"
 text_mode=0
+rev=HEAD
 
 usage() {
   echo "Usage: $0 [--rev <rev>] [--vde-path <path/to/vde>] [--text] <path/to/file>" >&2
@@ -13,8 +14,6 @@ usage() {
   echo "  --text, -t            Use text-based comparison mode (requires Rscript in PATH)" >&2
   echo "  --help, -h            Show this help message and exit" >&2
 }
-
-rev=HEAD
 
 # Parse parameters (supports both `--opt value` and `--opt=value` forms)
 while [ $# -gt 0 ]; do
@@ -81,7 +80,7 @@ fi
 
 dir=$(dirname -- "$file")
 base=$(basename -- "$file")
-tmp="$dir/~compare$base"
+tmp="$dir/~compare.$base"
 
 # Set up cleanup function to remove temporary file on exit
 
