@@ -4,6 +4,7 @@ set -euo pipefail
 
 # Defaults
 vde_path="vde-dataset-viewer"
+r_path="Rscript"
 text_mode=0
 rev=HEAD
 
@@ -11,7 +12,9 @@ usage() {
   echo "Usage: $0 [--rev <rev>] [--vde-path <path/to/vde>] [--text] <path/to/file>" >&2
   echo "  --rev <rev>           Git revision to compare against (default: HEAD)" >&2
   echo "  --vde-path <path>     Path to vde-dataset-viewer executable (default: vde-dataset-viewer in PATH)" >&2
-  echo "  --text, -t            Use text-based comparison mode (requires Rscript in PATH)" >&2
+  echo "  --r-path <path>       Path to Rscript executable (default: Rscript in PATH)" >&2
+  echo "  --text, -t            Use text-based comparison mode" >&2
+  echo "  --visual, -v          Use visual comparison mode (default)" >&2
   echo "  --help, -h            Show this help message and exit" >&2
 }
 
@@ -44,12 +47,25 @@ while [ $# -gt 0 ]; do
       vde_path="${1#*=}"
       shift
       ;;
+    --r-path)
+      shift
+      if [ $# -eq 0 ]; then
+        usage
+        exit 2
+      fi
+      r_path="$1"
+      shift
+      ;;
+    --r-path=*)
+      r_path="${1#*=}"
+      shift
+      ;;
     --text|-t)
       text_mode=1
       shift
       ;;
-    --text=*)
-      text_mode="${1#*=}"
+    --visual|-v)
+      text_mode=0
       shift
       ;;
     --help|-h)
@@ -121,13 +137,13 @@ if ! dvc get . "$file_relative_path" -o "$tmp" --rev "$rev" >/dev/null 2>&1; the
 fi
 
 if [ "${text_mode:-0}" = "1" ]; then
-  if ! command -v Rscript >/dev/null 2>&1; then
+  if ! command -v "$r_path" >/dev/null 2>&1; then
     echo "Rscript not found in PATH" >&2
     exit 6
   fi
   echo "Running Rscript ./compare_data.r \"$file\" \"$tmp\""
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  Rscript "$script_dir/compare_data.r" "$file" "$tmp"
+  "$r_path" "$script_dir/compare_data.r" "$file" "$tmp"
 else
   echo "Launching $vde_path --compare $file $tmp"
   "$vde_path" --compare "$file" "$tmp" >/dev/null 2>&1

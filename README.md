@@ -23,4 +23,6 @@ Options:
 
 `--rev <rev>`: Git revision to compare against (default: HEAD)
 `--vde-path <path>`: Path to vde-dataset-viewer executable (default: vde-dataset-viewer in PATH)
-`--text, -t`: Use text-based comparison mode (requires Rscript in PATH)
+`--r-path <path>`: Path to Rscript executable (default: Rscript in PATH)
+`--text, -t`: Use text-based comparison mode
+`--visual, -v`: Use visual comparison mode (default)
