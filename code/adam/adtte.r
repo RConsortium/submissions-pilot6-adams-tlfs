@@ -46,7 +46,7 @@ event <- event_source(
   filter = AOCC01FL == "Y" & CQ01NAM == "DERMATOLOGIC EVENTS" & SAFFL == "Y",
   date = ASTDT,
   set_values_to = exprs(
-    EVNTDESC = "Dematologic Event Occured",
+    EVNTDESC = "Dermatologic Event Occurred",
     SRCDOM = "ADAE",
     SRCVAR = "ASTDT",
     SRCSEQ = AESEQ
