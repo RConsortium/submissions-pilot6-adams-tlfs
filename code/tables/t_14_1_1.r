@@ -80,7 +80,11 @@ t_14_1_1 <- adsl_total %>%
     statistic = list(all_dichotomous() ~ "{n} ({p}%)"),
     include = all_of(population_def$population_id),
     value = list(all_of(population_def$population_id) ~ "Y"),
-    digits = list(all_categorical() ~ c(0, 0)),
+    digits = list(
+      all_dichotomous() ~ list(
+        p = label_style_percent(digits = 0, width = 3, justify = "right")
+      )
+    ),
     label = as.list(population_def$population_label) %>% setNames(population_def$population_id)
   ) %>%
   modify_header(label = "") %>%
@@ -88,14 +92,6 @@ t_14_1_1 <- adsl_total %>%
   remove_footnote_header(columns = all_stat_cols())
 
 # Additional alignments
-t_14_1_1$table_body <- t_14_1_1$table_body %>%
-  # Pad percent values to width 3 inside parentheses, e.g. ( 11), (100), (  1)
-  mutate(
-    across(all_stat_cols(), ~ str_replace_all(.x, "\\((\\d{1,3})%\\)", function(m) {
-      num <- as.integer(str_extract(m, "\\d+"))
-      sprintf("(%3d%%)", num)
-    }))
-  )
 
 # ----------------------------------------------------------------------------
 # Output data

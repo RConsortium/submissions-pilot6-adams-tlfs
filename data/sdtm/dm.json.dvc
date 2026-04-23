@@ -1,0 +1,5 @@
+outs:
+- md5: 18f242254b40aad7f1537a77ca50b329
+  size: 78903
+  hash: md5
+  path: dm.json

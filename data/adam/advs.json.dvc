@@ -1,0 +1,5 @@
+outs:
+- md5: f828a3eb3e26cb62f5c99443f15eb40a
+  size: 10406031
+  hash: md5
+  path: advs.json

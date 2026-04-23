@@ -29,15 +29,19 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 # ----------------------------------------------------------------------------
 
 # Load define.xml metadata
-advs_spec <- define_to_metacore(
-  path$define_path,
+metacore <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
   quiet = TRUE
-) %>%
+)
+
+# Get the specifications for the dataset we are currently building
+advs_spec <- metacore %>%
   select_dataset("ADVS")
 
 # Tibbles with codelists
 atpt_codelist <- advs_spec$codelist %>%
-  filter(code_id == "CL.ADVS.ATPTN") %>%
+  filter(code_id == "ADVS.ATPTN") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
@@ -48,7 +52,7 @@ atpt_codelist <- advs_spec$codelist %>%
   rename(ATPTN = code, ATPT = decode)
 
 avisit_codelist <- advs_spec$codelist %>%
-  filter(code_id == "CL.ADVS.AVISITN") %>%
+  filter(code_id == "ADVS.AVISITN") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
@@ -59,14 +63,14 @@ avisit_codelist <- advs_spec$codelist %>%
   rename(AVISITN = code, AVISIT = decode)
 
 paramcd_codelist <- advs_spec$codelist %>%
-  filter(code_id == "CL.PARAMCD_ADVS") %>%
+  filter(code_id == "PARAMCD_ADVS") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
   rename(PARAMCD = code, PARAM = decode)
 
 paramn_codelist <- advs_spec$codelist %>%
-  filter(code_id == "CL.PARAMN_ADVS") %>%
+  filter(code_id == "PARAMN_ADVS") %>%
   pull(codes) %>%
   pluck(1) %>%
   select(code, decode) %>%
@@ -85,28 +89,10 @@ param_lookup <- paramcd_codelist %>%
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 
-# Define data to load
-data_to_load_xpt <- list(
-  vs = file.path(path$sdtm, "vs.xpt")
-)
+vs <- read_dataset_json(file.path(path$sdtm, "vs.json"), decimals_as_floats = TRUE)
 
-data_to_load_json <- list(
-  adsl = file.path(path$adam, "adsl.json")
-)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
 
-# Load datasets using map and convert blanks to NA
-datasets_xpt <- map(
-  data_to_load_xpt,
-  ~ convert_blanks_to_na(read_xpt(.x))
-)
-
-datasets_json <- map(
-  data_to_load_json,
-  ~ convert_blanks_to_na(read_dataset_json(.x))
-)
-
-# Put datasets into the global environment
-list2env(c(datasets_xpt, datasets_json), envir = .GlobalEnv)
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS
@@ -222,3 +208,4 @@ save_dataset_json(
   dataset = advs_sorted,
   ds_spec = advs_spec
 )
+
