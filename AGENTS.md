@@ -48,6 +48,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
   - PDF output (final review artifact).
 - If `code/tables/` is absent in your branch, create it manually before adding TLF programs.
 - Use configured path entries (for example `path$table_ard` and `path$table_output`) for output locations.
+- For reviewer traceability in PDFs, source `code/utils/doc_relative_path.r` and include a footer source line in the form `Source: <relative script path>`.
 - Suggested table program flow:
   1. header comments (purpose/input/output),
   2. library loading,
@@ -63,6 +64,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
   - run `dvc pull` before table generation when SDTM/ADaM inputs may be missing or stale,
   - run `dvc add` for generated table artifacts that are intended to be tracked,
   - commit corresponding `.dvc` files with program changes.
+  - keep ARD `.rds` artifacts tracked in `data/tables/ard/`; ignore docorator-generated `.rds`/`.RDS` files under `data/tables/pdf/`.
 
 ## Tidyverse style expectations for future changes
 
