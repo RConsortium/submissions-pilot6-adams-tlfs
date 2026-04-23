@@ -15,7 +15,11 @@ library(tidyr)
 library(datasetjson)
 library(gtsummary)
 library(gt)
+library(glue)
 library(docorator)
+
+# Import utility functions
+source(file.path("code", "utils", "doc_relative_path.r"))
 
 # ----------------------------------------------------------------------------
 # Load datasets
@@ -33,10 +37,6 @@ adsl <- read_dataset_json(
   convert_blanks_to_na_local() %>%
   rename_with(tolower) %>%
   select(usubjid, siteid, sitegr1, trt01p, ittfl, efffl, comp24fl)
-
-adsl <- read_dataset_json(
-  file.path(path$adam, "adsltest.json")
-)
 
 # ----------------------------------------------------------------------------
 # Prepare data
@@ -65,9 +65,12 @@ adsl_total <- bind_rows(
 ) %>%
   mutate(trt01p = factor(as.character(trt01p), levels = trt_levels))
 
-adsl_site_combined <- adsl_total %>%
-  mutate(siteid = paste(sep = "#", sitegr1, siteid))
-
+adsl_site_combined <- bind_rows(
+  adsl_total %>%
+    mutate(siteid = paste(sep = "#", sitegr1, siteid)),
+  adsl_total %>%
+    mutate(siteid = "TOTAL#")
+)
 # ----------------------------------------------------------------------------
 # Get table summary data
 # ----------------------------------------------------------------------------
@@ -91,10 +94,22 @@ adsl_transposed_by_pop <- adsl_site_combined %>%
   ) %>%
   arrange(sitegr1, siteid, population)
 
+# Get header counts
+spanners <- adsl_site_combined %>%
+  filter(siteid != "TOTAL#") %>%
+  group_by(trt01p) %>%
+  summarise(n = n()) %>%
+  mutate(
+    trt01p = factor(trt01p, levels = trt_levels),
+    tab_spanner = glue("**{trt01p}**  \n(N={n})")
+  ) %>%
+  arrange(trt01p) %>%
+  pull(tab_spanner)
+
 # tbl_summary: columns = trt_pop (combined factor), rows = siteid levels.
 # statistic = "{n}" gives raw counts per cell (no denominator needed).
 t_14_1_3 <- adsl_transposed_by_pop %>%
-  tbl_strata(
+  tbl_strata2(
     strata = trt01p,
     .tbl_fun =
       ~ .x %>%
@@ -106,14 +121,16 @@ t_14_1_3 <- adsl_transposed_by_pop %>%
       ) %>%
       modify_header(all_stat_cols() ~ "**{level}**") %>%
       remove_footnote_header(columns = all_stat_cols()),
-    .header = "**{strata}**  \n(N = {n})"
+    .combine_args = list(tab_spanner = spanners)
   ) %>%
-  # Split siteid back into sitegr1 and siteid for labeling
   modify_table_body(
     ~ .x %>%
+      mutate(across(all_stat_cols(), ~ if_else(is.na(.), "0", .))) %>%
       mutate(pooled_id = sapply(strsplit(label, "#"), `[`, 1)) %>%
       mutate(label = sapply(strsplit(label, "#"), `[`, 2)) %>%
-      select(pooled_id, everything())
+      filter(pooled_id != "siteid") %>%
+      select(pooled_id, everything()) %>%
+      arrange(pooled_id, label)
   ) %>%
   modify_header(
     label    = "**Site Id**",
@@ -158,7 +175,7 @@ gt_table %>%
           "NOTE: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population;"
       ),
       fancyrow(left = "Com: Number of subjects completing Week 24."),
-      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+      fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     )
   ) %>%
   render_pdf(path$table_output)
