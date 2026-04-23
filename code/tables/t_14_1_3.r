@@ -1,7 +1,7 @@
 #************************************************************************
 # Purpose:     Generate Table 14.1.3 - Summary of Number of Subjects By Site
 # Input:       ADSL
-# Output:      t14_1_3.rtf
+# Output:      t14_1_3.pdf
 #************************************************************************
 
 # Note to Reviewer
@@ -101,7 +101,7 @@ spanners <- adsl_site_combined %>%
   summarise(n = n()) %>%
   mutate(
     trt01p = factor(trt01p, levels = trt_levels),
-    tab_spanner = glue("**{trt01p}**  \n(N={n})")
+    tab_spanner = glue("**{trt01p}  \n(N={n})**")
   ) %>%
   arrange(trt01p) %>%
   pull(tab_spanner)
