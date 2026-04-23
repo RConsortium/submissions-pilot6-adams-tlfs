@@ -13,6 +13,9 @@ library(docorator)
 
 #' Get the relative path of the current script
 #'
+#' @param filename Name of the file passed to docorator doc_path function. If NULL, it will use the current script.
+#' @param path program path passed to docorator doc_path function. If NULL, it will use the current script path.
+#'
 #' This function returns the path of the current script relative to the git root folder.
 #' @return Character string with the relative path of the current script.
 #' @examples
@@ -21,9 +24,9 @@ library(docorator)
 #' doc_relative_path()
 #' }
 
-doc_relative_path <- function() {
+doc_relative_path <- function(filename = NULL, path = NULL) {
   # Get the absolute path of the current script
-  absolute_path <- doc_path()
+  absolute_path <- doc_path(filename, path)
 
   # Get the root directory of the git repository
   git_root <- system("git rev-parse --show-toplevel", intern = TRUE)
