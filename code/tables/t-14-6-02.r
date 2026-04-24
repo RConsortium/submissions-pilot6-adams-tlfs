@@ -12,8 +12,8 @@
 library(dplyr)
 library(tidyr)
 library(datasetjson)
-library(gt)
-library(docorator)
+library(gtsummary)
+library(flextable)
 
 ## Load datasets --------------------------------------------------------
 adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_floats = TRUE)
@@ -197,136 +197,43 @@ dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
 # ARD output (intermediate) --------------------------------------------
 saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
 
-# Table rendering with gt -----------------------------------------------
 
-## Column label helpers -------------------------------------------------
-# Build N labels for header
-n_label <- function(trt_name) {
-  n <- trt_n$N[trt_n$TRT01A == trt_name]
-  if (length(n) == 0) trt_name
-  else sprintf("%s (N=%d)", trt_name, n)
+# Table rendering with gtsummary ---------------------------------------
+
+build_gtsummary <- function(data) {
+  # Remove grouping/section columns for display
+  display <- data %>% select(-PARCAT1, -PARAMN, -section)
+  # gtsummary expects a data.frame with variables as columns
+  tbl <- gtsummary::tbl_summary(
+    display,
+    by = NULL,
+    statistic = list(all_categorical() ~ "{n}"),
+    label = list(PARAM ~ "Parameter", p_fmt ~ "p-val [1]")
+  )
+  tbl
 }
 
-trt_labels <- setNames(
-  lapply(trt_order, n_label),
-  trt_order
-)
+gtsum_tbl <- build_gtsummary(display_data)
 
-# Abbreviate treatment names for display
-trt_display <- c(
-  "Placebo"              = "Placebo",
-  "Xanomeline Low Dose"  = "Xan. Low",
-  "Xanomeline High Dose" = "Xan. High"
-)
+# Save as RDS (ARD output)
+saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
 
-## Build section rows (blank separator + section header) ----------------
-section_rows <- display_data %>%
-  group_by(section) %>%
-  summarise(first_paramn = min(PARAMN), .groups = "drop") %>%
-  arrange(first_paramn)
-
-## gt table build -------------------------------------------------------
-build_gt <- function(data) {
-  trt_col_map <- setNames(col_order[-length(col_order)], col_order[-length(col_order)])
-
-  gt_tbl <- data %>%
-    select(-PARCAT1, -PARAMN, -section) %>%
-    gt(rowname_col = "PARAM") %>%
-    tab_header(
-      title    = md("**Table 14-6.02**"),
-      subtitle = md(
-        "**Frequency of Normal and Abnormal (Beyond Normal Range)**  \n**Laboratory Values During Treatment**"
-      )
-    ) %>%
-    tab_stubhead(label = "") %>%
-    cols_label(
-      !!paste("Placebo",              "Low",    sep = "||") := "Low",
-      !!paste("Placebo",              "Normal", sep = "||") := "Normal",
-      !!paste("Placebo",              "High",   sep = "||") := "High",
-      !!paste("Xanomeline Low Dose",  "Low",    sep = "||") := "Low",
-      !!paste("Xanomeline Low Dose",  "Normal", sep = "||") := "Normal",
-      !!paste("Xanomeline Low Dose",  "High",   sep = "||") := "High",
-      !!paste("Xanomeline High Dose", "Low",    sep = "||") := "Low",
-      !!paste("Xanomeline High Dose", "Normal", sep = "||") := "Normal",
-      !!paste("Xanomeline High Dose", "High",   sep = "||") := "High",
-      p_fmt = "p-val\n[1]"
-    ) %>%
-    tab_spanner(
-      label   = sprintf("Placebo (N=%d)", trt_n$N[trt_n$TRT01A == "Placebo"]),
-      columns = starts_with("Placebo||")
-    ) %>%
-    tab_spanner(
-      label   = sprintf(
-        "Xan. Low (N=%d)",
-        trt_n$N[trt_n$TRT01A == "Xanomeline Low Dose"]
-      ),
-      columns = starts_with("Xanomeline Low Dose||")
-    ) %>%
-    tab_spanner(
-      label   = sprintf(
-        "Xan. High (N=%d)",
-        trt_n$N[trt_n$TRT01A == "Xanomeline High Dose"]
-      ),
-      columns = starts_with("Xanomeline High Dose||")
-    ) %>%
-    tab_row_group(
-      label = md("**HEMATOLOGY**  \n----------"),
-      rows  = data$section == "HEMATOLOGY"
-    ) %>%
-    tab_row_group(
-      label = md("**CHEMISTRY**  \n----------"),
-      rows  = data$section == "CHEMISTRY"
-    ) %>%
-    opt_table_font(font = "Courier New") %>%
-    cols_align(align = "right", columns = -PARAM) %>%
-    cols_width(
-      PARAM ~ px(200),
-      starts_with("Placebo||") ~ px(80),
-      starts_with("Xanomeline") ~ px(80)
-    ) %>%
-    tab_options(
-      table.font.size      = px(7),
-      data_row.padding     = px(0.5),
-      row_group.font.weight = "bold",
-      table.border.top.style = "hidden",
-      table.border.bottom.style = "hidden"
-    )
-
-  gt_tbl
+# Save as PDF using flextable (via as_flex_table)
+ft <- as_flex_table(gtsum_tbl)
+pdf_file <- file.path(table_output, "t-14-6-02.pdf")
+tmp_img <- tempfile(fileext = ".png")
+flextable::save_as_image(ft, path = tmp_img)
+if (requireNamespace("magick", quietly = TRUE)) {
+  img <- magick::image_read(tmp_img)
+  magick::image_write(img, path = pdf_file, format = "pdf")
+} else {
+  warning("magick package required to save PDF. Saved as PNG instead.")
+  file.copy(tmp_img, sub(".pdf$", ".png", pdf_file))
 }
-
-gt_tbl <- build_gt(display_data)
-
-## Save PDF output ------------------------------------------------------
-gt_tbl %>%
-  as_docorator(
-    display_name = "t-14-6-02",
-    display_loc = table_output,
-    save_object = FALSE,
-    header = fancyhead(
-      fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
-      fancyrow(left = "Population: Safety", center = NA, right = NA)
-    ),
-    footer = fancyfoot(
-      fancyrow(left = "[1] Chi-square p-value (treatment arm comparison of abnormal vs normal)."),
-      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
-    ),
-    geometry = geom_set(
-      paperwidth = "11in",
-      paperheight = "8.5in",
-      left = "0.5in",
-      right = "0.5in",
-      top = "0.5in",
-      bottom = "0.5in",
-      headheight = "24pt",
-      footskip = "24pt"
-    )
-  ) %>%
-  render_pdf(table_output)
 
 message(
   "Table 14.6.02 saved: ",
   file.path(table_ard, "t-14-6-02.rds"),
   " and ",
-  file.path(table_output, "t-14-6-02.pdf")
+  pdf_file
 )
