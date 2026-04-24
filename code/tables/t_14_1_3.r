@@ -176,6 +176,7 @@ gt_table %>%
       ),
       fancyrow(left = "Com: Number of subjects completing Week 24."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
-    )
+    ),
+    save_object = FALSE
   ) %>%
   render_pdf(path$table_output)
