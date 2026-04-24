@@ -1,5 +1,5 @@
 # ============================================================================
-# Program: advs.R
+# Program: advs.r
 # Purpose: Create ADaM Vital Signs Analysis Dataset (ADVS)
 # Description: Derives analysis variables for vital signs data including
 #              change from baseline, analysis flags, and parameter mappings.
@@ -20,6 +20,7 @@ library(stringr)      # String manipulation
 library(purrr)        # Functional programming
 library(tibble)       # Creating tibbles
 library(metacore)     # Metadata handling
+library(datasetjson)  # Dataset JSON handling
 
 # Import utility functions
 source(file.path("code", "utils", "save_dataset_json.r"))
