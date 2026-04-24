@@ -13,7 +13,8 @@ library(dplyr)
 library(tidyr)
 library(datasetjson)
 library(gtsummary)
-library(flextable)
+library(gt)
+library(docorator)
 
 ## Load datasets --------------------------------------------------------
 adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_floats = TRUE)
@@ -198,8 +199,6 @@ dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
 saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
 
 
-# Table rendering with gtsummary ---------------------------------------
-
 build_gtsummary <- function(data) {
   # Remove grouping/section columns for display
   display <- data %>% select(-PARCAT1, -PARAMN, -section)
@@ -218,22 +217,47 @@ gtsum_tbl <- build_gtsummary(display_data)
 # Save as RDS (ARD output)
 saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
 
-# Save as PDF using flextable (via as_flex_table)
-ft <- as_flex_table(gtsum_tbl)
-pdf_file <- file.path(table_output, "t-14-6-02.pdf")
-tmp_img <- tempfile(fileext = ".png")
-flextable::save_as_image(ft, path = tmp_img)
-if (requireNamespace("magick", quietly = TRUE)) {
-  img <- magick::image_read(tmp_img)
-  magick::image_write(img, path = pdf_file, format = "pdf")
-} else {
-  warning("magick package required to save PDF. Saved as PNG instead.")
-  file.copy(tmp_img, sub(".pdf$", ".png", pdf_file))
-}
+# Render PDF with gt + docorator --------------------------------------
+gt_tbl <- gtsummary::as_gt(gtsum_tbl)
+gt_tbl <- gt_tbl %>%
+  tab_header(
+    title = "Table 14.6.02",
+    subtitle = "Frequency of Normal and Abnormal (Beyond Normal Range) Laboratory Values During Treatment"
+  )
+
+# Add header/footer using docorator
+gt_tbl %>%
+  as_docorator(
+    display_name = "t-14-6-02",
+    display_loc  = table_output,
+    header = fancyhead(
+      fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
+      fancyrow(left = "Population: Safety (SAFFL = 'Y')", center = NA, right = NA)
+    ),
+    footer = fancyfoot(
+      fancyrow(left =
+        paste0(
+          "NOTE: N in column headers represents number of subjects in the safety population. "
+        )
+      ),
+      fancyrow(left =
+        paste0(
+          "Counts are based on worst post-baseline value per subject per parameter. "
+        )
+      ),
+      fancyrow(left =
+        paste0(
+          "Low/High = below/above normal range; Normal = within normal range. "
+        )
+      ),
+      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+    )
+  ) %>%
+  render_pdf(table_output)
 
 message(
   "Table 14.6.02 saved: ",
   file.path(table_ard, "t-14-6-02.rds"),
   " and ",
-  pdf_file
+  file.path(table_output, "t-14-6-02.pdf")
 )
