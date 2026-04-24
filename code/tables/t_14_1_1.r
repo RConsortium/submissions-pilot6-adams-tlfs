@@ -1,7 +1,7 @@
 #************************************************************************
 # Purpose:     Generate Table 14.1.1 - Summary of Populations
 # Input:       ADSL
-# Output:      t14_1_1.rtf
+# Output:      t14_1_1.pdf
 #************************************************************************
 
 # Note to Reviewer
@@ -17,6 +17,9 @@ library(gtsummary)
 library(gt)
 library(docorator)
 library(stringr)
+
+# Import utility functions
+source(file.path("code", "utils", "doc_relative_path.r"))
 
 # ----------------------------------------------------------------------------
 # Load datasets
@@ -53,19 +56,13 @@ population_def <- tribble(
   "saffl", "Safety",
   "efffl", "Efficacy",
   "comp24fl", "Completer Week 24",
-  "compfl", "Complete Study"
+  "complfl", "Complete Study"
 )
-
-# Derive an additional completion flag
-adsl_comp <- adsl %>%
-  mutate(
-    compfl = if_else(eosstt == "COMPLETED", "Y", "N")
-  )
 
 # Add total treatment group
 adsl_total <- bind_rows(
-  adsl_comp,
-  adsl_comp %>% mutate(trt01p = "Total")
+  adsl,
+  adsl %>% mutate(trt01p = "Total")
 ) %>%
   mutate(trt01p = factor(as.character(trt01p), levels = trt_levels))
 
@@ -150,7 +147,8 @@ gt_table %>%
       fancyrow(left =
           "at least one post-baseline ADAS-Cog and CIBIC+ assessment."
       ),
-      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
-    )
+      fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
+    ),
+    save_object =  FALSE
   ) %>%
   render_pdf(path$table_output)

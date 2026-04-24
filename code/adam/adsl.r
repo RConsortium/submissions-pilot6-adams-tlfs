@@ -216,6 +216,7 @@ adsl04 <- adsl03 %>%
     filter_add = !is.na(USUBJID)
   ) %>%
   mutate(EOSSTT = if_else(DCDECOD == "COMPLETED", "COMPLETED", "DISCONTINUED")) %>%
+  mutate(COMPLFL = if_else(EOSSTT == "COMPLETED", "Y", "N")) %>%
   derive_vars_merged(
     dataset_add = ds00,
     by_vars = exprs(STUDYID, USUBJID),
