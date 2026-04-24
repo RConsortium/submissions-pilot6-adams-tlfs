@@ -12,7 +12,6 @@
 library(dplyr)
 library(tidyr)
 library(datasetjson)
-library(gtsummary)
 library(gt)
 library(docorator)
 
@@ -198,59 +197,129 @@ dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
 # ARD output (intermediate) --------------------------------------------
 saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
 
+# Table rendering with gt -----------------------------------------------
 
-build_gtsummary <- function(data) {
-  # Remove grouping/section columns for display
-  display <- data %>% select(-PARCAT1, -PARAMN, -section)
-  # gtsummary expects a data.frame with variables as columns
-  tbl <- gtsummary::tbl_summary(
-    display,
-    by = NULL,
-    statistic = list(all_categorical() ~ "{n}"),
-    label = list(PARAM ~ "Parameter", p_fmt ~ "p-val [1]")
-  )
-  tbl
+## Column label helpers -------------------------------------------------
+# Build N labels for header
+n_label <- function(trt_name) {
+  n <- trt_n$N[trt_n$TRT01A == trt_name]
+  if (length(n) == 0) trt_name
+  else sprintf("%s (N=%d)", trt_name, n)
 }
 
-gtsum_tbl <- build_gtsummary(display_data)
+trt_labels <- setNames(
+  lapply(trt_order, n_label),
+  trt_order
+)
 
-# Save as RDS (ARD output)
-saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
+# Abbreviate treatment names for display
+trt_display <- c(
+  "Placebo"              = "Placebo",
+  "Xanomeline Low Dose"  = "Xan. Low",
+  "Xanomeline High Dose" = "Xan. High"
+)
 
-# Render PDF with gt + docorator --------------------------------------
-gt_tbl <- gtsummary::as_gt(gtsum_tbl)
-gt_tbl <- gt_tbl %>%
-  tab_header(
-    title = "Table 14.6.02",
-    subtitle = "Frequency of Normal and Abnormal (Beyond Normal Range) Laboratory Values During Treatment"
-  )
+## Build section rows (blank separator + section header) ----------------
+section_rows <- display_data %>%
+  group_by(section) %>%
+  summarise(first_paramn = min(PARAMN), .groups = "drop") %>%
+  arrange(first_paramn)
 
-# Add header/footer using docorator
+## gt table build -------------------------------------------------------
+build_gt <- function(data) {
+  trt_col_map <- setNames(col_order[-length(col_order)], col_order[-length(col_order)])
+
+  gt_tbl <- data %>%
+    select(-PARCAT1, -PARAMN, -section) %>%
+    gt(rowname_col = "PARAM") %>%
+    tab_header(
+      title    = md("**Table 14-6.02**"),
+      subtitle = md(
+        "**Frequency of Normal and Abnormal (Beyond Normal Range)**  \n**Laboratory Values During Treatment**"
+      )
+    ) %>%
+    tab_stubhead(label = "") %>%
+    cols_label(
+      !!paste("Placebo",              "Low",    sep = "||") := "Low",
+      !!paste("Placebo",              "Normal", sep = "||") := "Normal",
+      !!paste("Placebo",              "High",   sep = "||") := "High",
+      !!paste("Xanomeline Low Dose",  "Low",    sep = "||") := "Low",
+      !!paste("Xanomeline Low Dose",  "Normal", sep = "||") := "Normal",
+      !!paste("Xanomeline Low Dose",  "High",   sep = "||") := "High",
+      !!paste("Xanomeline High Dose", "Low",    sep = "||") := "Low",
+      !!paste("Xanomeline High Dose", "Normal", sep = "||") := "Normal",
+      !!paste("Xanomeline High Dose", "High",   sep = "||") := "High",
+      p_fmt = "p-val\n[1]"
+    ) %>%
+    tab_spanner(
+      label   = sprintf("Placebo (N=%d)", trt_n$N[trt_n$TRT01A == "Placebo"]),
+      columns = starts_with("Placebo||")
+    ) %>%
+    tab_spanner(
+      label   = sprintf(
+        "Xan. Low (N=%d)",
+        trt_n$N[trt_n$TRT01A == "Xanomeline Low Dose"]
+      ),
+      columns = starts_with("Xanomeline Low Dose||")
+    ) %>%
+    tab_spanner(
+      label   = sprintf(
+        "Xan. High (N=%d)",
+        trt_n$N[trt_n$TRT01A == "Xanomeline High Dose"]
+      ),
+      columns = starts_with("Xanomeline High Dose||")
+    ) %>%
+    tab_row_group(
+      label = md("**HEMATOLOGY**  \n----------"),
+      rows  = data$section == "HEMATOLOGY"
+    ) %>%
+    tab_row_group(
+      label = md("**CHEMISTRY**  \n----------"),
+      rows  = data$section == "CHEMISTRY"
+    ) %>%
+    opt_table_font(font = "Courier New") %>%
+    cols_align(align = "right", columns = -PARAM) %>%
+    cols_width(
+      PARAM ~ px(200),
+      starts_with("Placebo||") ~ px(80),
+      starts_with("Xanomeline") ~ px(80)
+    ) %>%
+    tab_options(
+      table.font.size      = px(7),
+      data_row.padding     = px(0.5),
+      row_group.font.weight = "bold",
+      table.border.top.style = "hidden",
+      table.border.bottom.style = "hidden"
+    )
+
+  gt_tbl
+}
+
+gt_tbl <- build_gt(display_data)
+
+## Save PDF output ------------------------------------------------------
 gt_tbl %>%
   as_docorator(
     display_name = "t-14-6-02",
-    display_loc  = table_output,
+    display_loc = table_output,
+    save_object = FALSE,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
-      fancyrow(left = "Population: Safety (SAFFL = 'Y')", center = NA, right = NA)
+      fancyrow(left = "Population: Safety", center = NA, right = NA)
     ),
     footer = fancyfoot(
-      fancyrow(left =
-        paste0(
-          "NOTE: N in column headers represents number of subjects in the safety population. "
-        )
-      ),
-      fancyrow(left =
-        paste0(
-          "Counts are based on worst post-baseline value per subject per parameter. "
-        )
-      ),
-      fancyrow(left =
-        paste0(
-          "Low/High = below/above normal range; Normal = within normal range. "
-        )
-      ),
+      fancyrow(left = "[1] Chi-square p-value (treatment arm comparison of abnormal vs normal)."),
       fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+    ),
+    geometry = geom_set(
+      paperwidth = "11in",
+      paperheight = "8.5in",
+      left = "0.5in",
+      right = "0.5in",
+      top = "0.5in",
+      bottom = "0.5in",
+      headheight = "24pt",
+      footskip = "24pt"
     )
   ) %>%
   render_pdf(table_output)
