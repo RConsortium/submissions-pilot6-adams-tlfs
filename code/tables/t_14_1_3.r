@@ -119,13 +119,17 @@ gt_display_data <- bind_rows(site_counts_wide, total_row) %>%
 
 t_14_1_3_ard <- adsl_total %>%
   mutate(
-    across(c(itt, eff, com), ~ if_else(.x == 1L, "Y", "N"), .names = "{.col}_flag")
+    across(
+      c(itt, eff, com),
+      ~ if_else(is.na(.x), NA_character_, if_else(.x == 1L, "Y", "N")),
+      .names = "{.col}_flag"
+    )
   ) %>%
   tbl_summary(
     by = trt01p,
     statistic = all_dichotomous() ~ "{n}",
     include = c(itt_flag, eff_flag, com_flag),
-    value = list(all_of(c("itt_flag", "eff_flag", "com_flag")) ~ "Y"),
+    value = list(c("itt_flag", "eff_flag", "com_flag") ~ "Y"),
     label = list(
       itt_flag = "ITT",
       eff_flag = "Eff",
