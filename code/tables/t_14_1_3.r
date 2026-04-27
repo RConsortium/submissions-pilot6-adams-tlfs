@@ -13,8 +13,13 @@
 library(dplyr)
 library(tidyr)
 library(datasetjson)
+library(cards)
+library(gtsummary)
 library(gt)
 library(docorator)
+
+# Import utility functions
+source(file.path("code", "utils", "doc_relative_path.r"))
 
 # ----------------------------------------------------------------------------
 # Load datasets
@@ -52,12 +57,11 @@ adsl_total <- bind_rows(
     itt = as.integer(ittfl == "Y"),
     eff = as.integer(efffl == "Y"),
     com = as.integer(comp24fl == "Y"),
-    pooled_id = as.character(sitegr1),
-    site_id = as.character(siteid)
+    pooled_id = case_when(is.na(sitegr1) ~ "Missing", TRUE ~ as.character(sitegr1)),
+    site_id = case_when(is.na(siteid) ~ "Missing", TRUE ~ as.character(siteid))
   )
 
 site_counts <- adsl_total %>%
-  filter(!is.na(pooled_id), !is.na(site_id)) %>%
   group_by(pooled_id, site_id, trt01p) %>%
   summarise(
     itt = sum(itt, na.rm = TRUE),
@@ -81,7 +85,11 @@ totals_by_trt <- adsl_total %>%
   )
 
 site_counts_wide <- site_counts %>%
-  arrange(as.numeric(pooled_id), as.numeric(site_id), trt01p) %>%
+  mutate(
+    pooled_id_num = suppressWarnings(as.numeric(pooled_id)),
+    site_id_num = suppressWarnings(as.numeric(site_id))
+  ) %>%
+  arrange(is.na(pooled_id_num), pooled_id_num, pooled_id, is.na(site_id_num), site_id_num, site_id, trt01p) %>%
   pivot_wider(
     names_from = trt01p,
     values_from = c(itt, eff, com),
@@ -104,9 +112,28 @@ total_row <- totals_by_trt %>%
   ) %>%
   select(colnames(site_counts_wide))
 
-t_14_1_3_ard <- bind_rows(site_counts_wide, total_row)
-gt_display_data <- t_14_1_3_ard %>%
+t_14_1_3_table_data <- bind_rows(site_counts_wide, total_row)
+gt_display_data <- t_14_1_3_table_data %>%
   mutate(pooled_id = if_else(duplicated(pooled_id) & pooled_id != "TOTAL", "", pooled_id))
+
+t_14_1_3_ard <- adsl_total %>%
+  mutate(
+    itt_flag = if_else(itt == 1L, "Y", "N"),
+    eff_flag = if_else(eff == 1L, "Y", "N"),
+    com_flag = if_else(com == 1L, "Y", "N")
+  ) %>%
+  tbl_summary(
+    by = trt01p,
+    statistic = all_dichotomous() ~ "{n}",
+    include = c(itt_flag, eff_flag, com_flag),
+    value = list(all_of(c("itt_flag", "eff_flag", "com_flag")) ~ "Y"),
+    label = list(
+      itt_flag = "ITT",
+      eff_flag = "Eff",
+      com_flag = "Com"
+    )
+  ) %>%
+  gather_ard()
 
 # ----------------------------------------------------------------------------
 # Output data
@@ -152,7 +179,18 @@ gt_table <- gt_display_data %>%
     title = "Table 14-1.03",
     subtitle = "Summary of Number of Subjects By Site"
   ) %>%
-  cols_align(align = "center", columns = everything())
+  cols_align(align = "center", columns = everything()) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = list(
+      cells_column_labels(columns = everything()),
+      cells_column_spanners(spanners = everything())
+    )
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_title(groups = c("title", "subtitle"))
+  )
 
 gt_table %>%
   as_docorator(
@@ -171,7 +209,7 @@ gt_table %>%
       fancyrow(
         left = "Com: Number of subjects completing Week 24."
       ),
-      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+      fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     )
   ) %>%
   render_pdf(path$table_output)
