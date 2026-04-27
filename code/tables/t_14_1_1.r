@@ -1,7 +1,7 @@
 #************************************************************************
 # Purpose:     Generate Table 14.1.1 - Summary of Populations
 # Input:       ADSL
-# Output:      t14_1_1.rtf
+# Output:      t14_1_1.pdf
 #************************************************************************
 
 # Note to Reviewer
@@ -17,6 +17,9 @@ library(gtsummary)
 library(gt)
 library(docorator)
 library(stringr)
+
+# Import utility functions
+source(file.path("code", "utils", "doc_relative_path.r"))
 
 # ----------------------------------------------------------------------------
 # Load datasets
@@ -150,7 +153,7 @@ gt_table %>%
       fancyrow(left =
           "at least one post-baseline ADAS-Cog and CIBIC+ assessment."
       ),
-      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+      fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     )
   ) %>%
   render_pdf(path$table_output)

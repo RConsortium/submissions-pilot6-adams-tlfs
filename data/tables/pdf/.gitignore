@@ -1,2 +1,5 @@
 /t_14_1_1.pdf
 /t_14_1_3.pdf
+# Ignore datasets created by docorator, we keep ARD datasets in the ../ard folder
+*.rds
+*.RDS
