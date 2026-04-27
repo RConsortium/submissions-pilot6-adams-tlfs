@@ -57,8 +57,8 @@ adsl_total <- bind_rows(
     itt = as.integer(ittfl == "Y"),
     eff = as.integer(efffl == "Y"),
     com = as.integer(comp24fl == "Y"),
-    pooled_id = case_when(is.na(sitegr1) ~ "Missing", TRUE ~ as.character(sitegr1)),
-    site_id = case_when(is.na(siteid) ~ "Missing", TRUE ~ as.character(siteid))
+    pooled_id = if_else(is.na(sitegr1), "Missing", as.character(sitegr1)),
+    site_id = if_else(is.na(siteid), "Missing", as.character(siteid))
   )
 
 site_counts <- adsl_total %>%
@@ -87,9 +87,11 @@ totals_by_trt <- adsl_total %>%
 site_counts_wide <- site_counts %>%
   mutate(
     pooled_id_num = suppressWarnings(as.numeric(pooled_id)),
-    site_id_num = suppressWarnings(as.numeric(site_id))
+    site_id_num = suppressWarnings(as.numeric(site_id)),
+    pooled_id_num = if_else(is.na(pooled_id_num), Inf, pooled_id_num),
+    site_id_num = if_else(is.na(site_id_num), Inf, site_id_num)
   ) %>%
-  arrange(is.na(pooled_id_num), pooled_id_num, pooled_id, is.na(site_id_num), site_id_num, site_id, trt01p) %>%
+  arrange(pooled_id_num, pooled_id, site_id_num, site_id, trt01p) %>%
   pivot_wider(
     names_from = trt01p,
     values_from = c(itt, eff, com),
@@ -112,15 +114,12 @@ total_row <- totals_by_trt %>%
   ) %>%
   select(colnames(site_counts_wide))
 
-t_14_1_3_table_data <- bind_rows(site_counts_wide, total_row)
-gt_display_data <- t_14_1_3_table_data %>%
+gt_display_data <- bind_rows(site_counts_wide, total_row) %>%
   mutate(pooled_id = if_else(duplicated(pooled_id) & pooled_id != "TOTAL", "", pooled_id))
 
 t_14_1_3_ard <- adsl_total %>%
   mutate(
-    itt_flag = if_else(itt == 1L, "Y", "N"),
-    eff_flag = if_else(eff == 1L, "Y", "N"),
-    com_flag = if_else(com == 1L, "Y", "N")
+    across(c(itt, eff, com), ~ if_else(.x == 1L, "Y", "N"), .names = "{.col}_flag")
   ) %>%
   tbl_summary(
     by = trt01p,
@@ -209,7 +208,7 @@ gt_table %>%
       fancyrow(
         left = "Com: Number of subjects completing Week 24."
       ),
-      fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
+      fancyrow(left = paste("Source:", doc_relative_path()), center = NA, right = doc_datetime())
     )
   ) %>%
   render_pdf(path$table_output)
