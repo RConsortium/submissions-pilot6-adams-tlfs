@@ -33,7 +33,7 @@ jobs:
         id: run_styler
         run: |
           library(styler)
-          result <- style_dir("code", dry = "on", include_roxygen_examples = FALSE)
+          result <- style_dir("code", dry = "on", include_roxygen_examples = FALSE) # roxygen2 not installed in CI
           changed_files <- result$file[result$changed %in% TRUE]
           if (length(changed_files) == 0) {
             cat("STYLE_PASS=true\n", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
