@@ -1,3 +1,12 @@
+# ============================================================================
+# Program: save_dataset_json.r
+# Purpose: Save a dataset in Dataset-JSON format
+# Description: Saves a dataset in Dataset-JSON format using
+#              the provided metadata specification.
+# Input: None
+# Output: JSON file saved to the specified output directory
+# ============================================================================
+
 library(dplyr)
 library(datasetjson)  # Dataset JSON handling
 library(metacore)     # Metadata handling
