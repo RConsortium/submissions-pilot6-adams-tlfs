@@ -47,7 +47,6 @@ adlbhy_spec <- suppressWarnings(
 # Select Parameters from LB -----------------------------------------------
 allowed_avisit <- c("Baseline", "Week 2", "Week 4", "Week 6", "Week 8", "Week 12", "Week 16", "Week 20", "Week 24")
 
-
 adlbhy_pre <- adlbc %>%
   filter(
     PARAMCD %in% c("ALT", "AST", "BILI"),
@@ -154,7 +153,7 @@ derived_params <- bind_rows(bilihy, transhy, hylaw_visits) %>%
       BASE == 1 & AVAL == 0 ~ "High to Normal",
       BASE == 0 & AVAL == 0 ~ "Normal to Normal",
       BASE == 0 & AVAL == 1 ~ "Normal to High",
-      BASE == 1 & AVAL == 1 ~ NA_character_  # Not specified in define.xml
+      BASE == 1 & AVAL == 1 ~ NA_character_ # Not specified in define.xml
     ),
     SHIFT1N = case_when(
       SHIFT1 == "High to Normal" ~ 0,

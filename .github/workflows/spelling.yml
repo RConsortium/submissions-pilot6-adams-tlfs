@@ -53,14 +53,26 @@ jobs:
           }
         shell: Rscript {0}
 
+      - name: Find existing spelling bot comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v3
+        id: find_comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- spelling-bot -->'
+
       - name: Post PR comment – success
         if: >
           github.event_name == 'pull_request' &&
           steps.run_spelling.outputs.SPELL_PASS == 'true'
         uses: peter-evans/create-or-update-comment@v4
         with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
           body: |
+            <!-- spelling-bot -->
             ## ✅ Spelling – No Issues Found
 
             All R files in `code/` passed the spell check with no findings. 🎉
@@ -89,32 +101,33 @@ jobs:
 
           findings = "\n".join(f"- `{l}`" for l in lines)
 
-          body = f"""## ⚠️ Spelling – Issues Found
+          body = f"""<!-- spelling-bot -->
+## ⚠️ Spelling – Issues Found
 
-          The following potential misspellings were detected in `code/`. Please review and fix them before merging.
+The following potential misspellings were detected in `code/`. Please review and fix them before merging.
 
-          <details>
-          <summary>🔍 {len(lines)} finding(s) – click to expand</summary>
+<details>
+<summary>🔍 {len(lines)} finding(s) – click to expand</summary>
 
-          {findings}
+{findings}
 
-          </details>
+</details>
 
-          ---
-          **Run locally to reproduce:**
-          ```r
-          # Install spelling if needed
-          install.packages("spelling")
+---
+**Run locally to reproduce:**
+```r
+# Install spelling if needed
+install.packages("spelling")
 
-          # Run spell check on the code directory (uses inst/WORDLIST for domain terms)
-          library(spelling)
-          r_files <- list.files("code", recursive = TRUE, full.names = TRUE, pattern = "\\.[rR]$")
-          ignore  <- readLines("inst/WORDLIST")
-          spelling::spell_check_files(r_files, ignore = ignore, lang = "en-US")
-          ```
+# Run spell check on the code directory (uses inst/WORDLIST for domain terms)
+library(spelling)
+r_files <- list.files("code", recursive = TRUE, full.names = TRUE, pattern = "\\.[rR]$")
+ignore  <- readLines("inst/WORDLIST")
+spelling::spell_check_files(r_files, ignore = ignore, lang = "en-US")
+```
 
-          > Add legitimate domain-specific terms (clinical acronyms, variable names) to `inst/WORDLIST` (one word per line) to suppress false positives.
-          """
+> Add legitimate domain-specific terms (clinical acronyms, variable names) to `inst/WORDLIST` (one word per line) to suppress false positives.
+"""
 
           with open("comment_body.md", "w") as f:
               f.write(body)
@@ -126,7 +139,9 @@ jobs:
           steps.run_spelling.outputs.SPELL_PASS == 'false'
         uses: peter-evans/create-or-update-comment@v4
         with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
           body-path: comment_body.md
 
       - name: Fail job when spelling issues found

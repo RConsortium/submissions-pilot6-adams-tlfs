@@ -11,15 +11,15 @@
 # ----------------------------------------------------------------------------
 
 # Load required packages
-library(admiral)      # ADaM derivations
-library(dplyr)        # Data manipulation
-library(lubridate)    # Date handling
-library(haven)        # Reading/writing SAS datasets
-library(stringr)      # String manipulation
-library(purrr)        # Functional programming
-library(tibble)       # Creating tibbles
-library(datasetjson)  # Dataset JSON handling
-library(metacore)     # Metadata handling
+library(admiral) # ADaM derivations
+library(dplyr) # Data manipulation
+library(lubridate) # Date handling
+library(haven) # Reading/writing SAS datasets
+library(stringr) # String manipulation
+library(purrr) # Functional programming
+library(tibble) # Creating tibbles
+library(datasetjson) # Dataset JSON handling
+library(metacore) # Metadata handling
 library(metatools)
 
 # Import utility functions
@@ -154,7 +154,6 @@ adcibc5 <- adcibc4 %>%
 # A dataset with combinations of PARAMCD, AVISIT which are expected.
 cibic_expected_obsv <- tibble::tribble(
   ~PARAMCD, ~AVISITN, ~AVISIT,
-  #"CIBICVAL", 0, "Baseline",
   "CIBICVAL", 8, "Week 8",
   "CIBICVAL", 16, "Week 16",
   "CIBICVAL", 24, "Week 24"
