@@ -96,41 +96,45 @@ jobs:
           steps.run_spelling.outputs.SPELL_PASS == 'false'
         id: build_comment
         run: |
-          with open("spelling_results.txt") as f:
-              lines = [l.rstrip() for l in f.readlines() if l.strip()]
+          with open("spelling_results.txt") as fh:
+              lines = [l.rstrip() for l in fh.readlines() if l.strip()]
 
           findings = "\n".join(f"- `{l}`" for l in lines)
+          count = len(lines)
 
-          body = f"""<!-- spelling-bot -->
-## ⚠️ Spelling – Issues Found
+          body = (
+              "<!-- spelling-bot -->\n"
+              "## ⚠️ Spelling – Issues Found\n"
+              "\n"
+              "The following potential misspellings were detected in `code/`. "
+              "Please review and fix them before merging.\n"
+              "\n"
+              "<details>\n"
+              f"<summary>🔍 {count} finding(s) – click to expand</summary>\n"
+              "\n"
+              f"{findings}\n"
+              "\n"
+              "</details>\n"
+              "\n"
+              "---\n"
+              "**Run locally to reproduce:**\n"
+              "```r\n"
+              "# Install spelling if needed\n"
+              "install.packages(\"spelling\")\n"
+              "\n"
+              "# Run spell check on the code directory (uses inst/WORDLIST for domain terms)\n"
+              "library(spelling)\n"
+              "r_files <- list.files(\"code\", recursive = TRUE, full.names = TRUE, pattern = \"\\\\.[rR]$\")\n"
+              "ignore  <- readLines(\"inst/WORDLIST\")\n"
+              "spelling::spell_check_files(r_files, ignore = ignore, lang = \"en-US\")\n"
+              "```\n"
+              "\n"
+              "> Add legitimate domain-specific terms (clinical acronyms, variable names) to "
+              "`inst/WORDLIST` (one word per line) to suppress false positives.\n"
+          )
 
-The following potential misspellings were detected in `code/`. Please review and fix them before merging.
-
-<details>
-<summary>🔍 {len(lines)} finding(s) – click to expand</summary>
-
-{findings}
-
-</details>
-
----
-**Run locally to reproduce:**
-```r
-# Install spelling if needed
-install.packages("spelling")
-
-# Run spell check on the code directory (uses inst/WORDLIST for domain terms)
-library(spelling)
-r_files <- list.files("code", recursive = TRUE, full.names = TRUE, pattern = "\\.[rR]$")
-ignore  <- readLines("inst/WORDLIST")
-spelling::spell_check_files(r_files, ignore = ignore, lang = "en-US")
-```
-
-> Add legitimate domain-specific terms (clinical acronyms, variable names) to `inst/WORDLIST` (one word per line) to suppress false positives.
-"""
-
-          with open("comment_body.md", "w") as f:
-              f.write(body)
+          with open("comment_body.md", "w") as fh:
+              fh.write(body)
         shell: python3 {0}
 
       - name: Post PR comment – findings

@@ -90,42 +90,45 @@ jobs:
           steps.run_styler.outputs.STYLE_PASS == 'false'
         id: build_comment
         run: |
-          with open("style_results.txt") as f:
-              files = [l.rstrip() for l in f.readlines() if l.strip()]
+          with open("style_results.txt") as fh:
+              files = [l.rstrip() for l in fh.readlines() if l.strip()]
 
           file_list = "\n".join(f"- `{f}`" for f in files)
+          count = len(files)
 
-          body = f"""<!-- styler-bot -->
-## ⚠️ Styler – Formatting Issues Found
+          body = (
+              "<!-- styler-bot -->\n"
+              "## ⚠️ Styler – Formatting Issues Found\n"
+              "\n"
+              f"The following {count} file(s) in `code/` are not consistently formatted. "
+              "Please run `styler::style_dir(\"code\")` locally and commit the result.\n"
+              "\n"
+              "<details>\n"
+              f"<summary>📂 {count} file(s) need formatting – click to expand</summary>\n"
+              "\n"
+              f"{file_list}\n"
+              "\n"
+              "</details>\n"
+              "\n"
+              "---\n"
+              "**Run locally to reproduce or fix:**\n"
+              "```r\n"
+              "# Install styler if needed\n"
+              "install.packages(\"styler\")\n"
+              "\n"
+              "# Check which files need formatting (dry run – no files are changed)\n"
+              "library(styler)\n"
+              "styler::style_dir(\"code\", dry = \"on\")\n"
+              "\n"
+              "# Apply formatting to all files\n"
+              "styler::style_dir(\"code\")\n"
+              "```\n"
+              "\n"
+              "> After running `style_dir`, review the changes with `git diff`, then commit and push.\n"
+          )
 
-The following {len(files)} file(s) in `code/` are not consistently formatted. Please run `styler::style_dir("code")` locally and commit the result.
-
-<details>
-<summary>📂 {len(files)} file(s) need formatting – click to expand</summary>
-
-{file_list}
-
-</details>
-
----
-**Run locally to reproduce or fix:**
-```r
-# Install styler if needed
-install.packages("styler")
-
-# Check which files need formatting (dry run – no files are changed)
-library(styler)
-styler::style_dir("code", dry = "on")
-
-# Apply formatting to all files
-styler::style_dir("code")
-```
-
-> After running `style_dir`, review the changes with `git diff`, then commit and push.
-"""
-
-          with open("comment_body.md", "w") as f:
-              f.write(body)
+          with open("comment_body.md", "w") as fh:
+              fh.write(body)
         shell: python3 {0}
 
       - name: Post PR comment – findings
