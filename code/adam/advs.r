@@ -12,15 +12,15 @@
 # ----------------------------------------------------------------------------
 
 # Load required packages
-library(admiral)      # ADaM derivations
-library(dplyr)        # Data manipulation
-library(lubridate)    # Date handling
-library(haven)        # Reading/writing SAS datasets
-library(stringr)      # String manipulation
-library(purrr)        # Functional programming
-library(tibble)       # Creating tibbles
-library(metacore)     # Metadata handling
-library(datasetjson)  # Dataset JSON handling
+library(admiral) # ADaM derivations
+library(dplyr) # Data manipulation
+library(lubridate) # Date handling
+library(haven) # Reading/writing SAS datasets
+library(stringr) # String manipulation
+library(purrr) # Functional programming
+library(tibble) # Creating tibbles
+library(metacore) # Metadata handling
+library(datasetjson) # Dataset JSON handling
 
 # Import utility functions
 source(file.path("code", "utils", "save_dataset_json.r"))
@@ -93,7 +93,6 @@ param_lookup <- paramcd_codelist %>%
 vs <- read_dataset_json(file.path(path$sdtm, "vs.json"), decimals_as_floats = TRUE)
 
 adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
-
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS
@@ -209,4 +208,3 @@ save_dataset_json(
   dataset = advs_sorted,
   ds_spec = advs_spec
 )
-
