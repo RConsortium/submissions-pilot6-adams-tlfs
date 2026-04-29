@@ -122,7 +122,7 @@ gt_table <-
 gt_table %>%
   as_docorator(
     display_name = "t_14_1_1",
-    display_loc  = path$table_output,
+    display_loc = path$table_output,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
       fancyrow(left = "Population: All Subjects", center = NA, right = NA)

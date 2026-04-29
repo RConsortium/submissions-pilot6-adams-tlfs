@@ -65,8 +65,10 @@ save_dataset_json <- function(output_dir, dataset, ds_spec, study = NULL) {
     left_join(ds_spec$var_spec, by = c("variable")) %>%
     rename(name = .data$variable, dataType = .data$type, keySequence = .data$key_seq, displayFormat = .data$format) %>%
     mutate(itemOID = paste0("IT.", .data$dataset, ".", .data$name)) %>%
-    select(.data$itemOID, .data$name, .data$label, .data$dataType,
-           .data$length, .data$keySequence, .data$displayFormat) %>%
+    select(
+      .data$itemOID, .data$name, .data$label, .data$dataType,
+      .data$length, .data$keySequence, .data$displayFormat
+    ) %>%
     mutate(
       dataType =
         case_when(
@@ -90,7 +92,8 @@ save_dataset_json <- function(output_dir, dataset, ds_spec, study = NULL) {
     ) %>%
     data.frame()
 
-  dataset_json(dataset_final,
+  dataset_json(
+    dataset_final,
     last_modified = strftime(as.POSIXlt(Sys.time(), "UTC"), "%Y-%m-%dT%H:%M"),
     originator = study$originator,
     sys = paste0("R on ", R.Version()$os, " ", unname(Sys.info())[[2]]),
@@ -105,5 +108,5 @@ save_dataset_json <- function(output_dir, dataset, ds_spec, study = NULL) {
     file_oid = file.path(path$adam, ds_name),
     columns = oid_cols
   ) %>%
-    write_dataset_json(file = file.path(output_dir, paste0(tolower(ds_name), ".json")))
+  write_dataset_json(file = file.path(output_dir, paste0(tolower(ds_name), ".json")))
 }
