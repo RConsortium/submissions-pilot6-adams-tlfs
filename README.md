@@ -9,6 +9,11 @@ Add the following alias to your local git configuration to enable easy compariso
 git config --local alias.compare '!cd "${GIT_PREFIX:-.}" && "$(git rev-parse --show-toplevel)/code/utils/dvc_compare.sh"'
 ```
 
+You can modify the alias to add default options. For example, to use the text comparison mode by default, update the alias as follows:
+```
+git config --local alias.compare '!cd "${GIT_PREFIX:-.}" && "$(git rev-parse --show-toplevel)/code/utils/dvc_compare.sh" --text'
+```
+
 This allows you to run `git compare <file>` to compare the specified file against the current HEAD revision.
 
 Compare can be done in text and visual modes. For the visual mode you will need to have the [vde-dataset-viewer](https://github.com/defineEditor/vde-dataset-viewer). For the text mode you will need Rscript in your PATH and both `diffdf` and `datasetjson` packages installed.
