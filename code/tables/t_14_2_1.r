@@ -147,11 +147,6 @@ t_14_2_1 <- adsl_updated %>%
       all_continuous() ~ list(var.equal = TRUE)
     )
   ) %>%
-  # Manually set labels, as "n" default label is different
-  add_stat_label(location = "row", label = list(
-    all_continuous() ~ c("n", "Mean", "SD", "Median", "Min", "Max"),
-    all_categorical() ~ ""
-  )) %>%
   # Column headers
   modify_header(label = "") %>%
   modify_header(list(
@@ -168,8 +163,12 @@ t_14_2_1 <- adsl_updated %>%
       group_by(variable, .add = TRUE) %>%
       reframe(add_row(pick(everything()), .before = 1)) %>%
       mutate(variable = as.character(variable)) %>%
-      # Reset stat label to remove extra comma for categorical variables
-      mutate(stat_label = NA) %>%
+      # Manually set labels, as "n" default label is different
+      mutate(label = case_when(
+        (row_type == "level" & label == "N Non-missing") ~ "n",
+        TRUE ~ label
+      )) %>%
+      # Formatting
       mutate(
         across(
           all_stat_cols(),
