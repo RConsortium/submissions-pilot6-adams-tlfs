@@ -199,7 +199,7 @@ dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
 # ARD output (intermediate) --------------------------------------------
 # Build a lightweight gtsummary representation from display_data solely for
 # ARD serialization; PDF rendering continues to use the custom gt layout below.
-t_14_6_02_tbl <- display_data %>%
+t_14_6_02_summary_tbl <- display_data %>%
   mutate(section = factor(section, levels = c("CHEMISTRY", "HEMATOLOGY"))) %>%
   tbl_summary(
     by = section,
@@ -209,7 +209,7 @@ t_14_6_02_tbl <- display_data %>%
   ) %>%
   modify_header(label = "")
 
-t_14_6_02_ard <- gather_ard(t_14_6_02_tbl)
+t_14_6_02_ard <- gather_ard(t_14_6_02_summary_tbl)
 if (nrow(t_14_6_02_ard) == 0) {
   stop(
     "ARD output is empty for t-14-6-02. Check ADLBC/ADLBH analysis records and display_data derivation filters."
