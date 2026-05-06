@@ -197,6 +197,8 @@ dir.create(table_output, recursive = TRUE, showWarnings = FALSE)
 dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
 
 # ARD output (intermediate) --------------------------------------------
+# Build a lightweight gtsummary representation from display_data solely for
+# ARD serialization; PDF rendering continues to use the custom gt layout below.
 t_14_6_02 <- display_data %>%
   mutate(section = factor(section, levels = c("CHEMISTRY", "HEMATOLOGY"))) %>%
   tbl_summary(
@@ -208,6 +210,9 @@ t_14_6_02 <- display_data %>%
   modify_header(label = "")
 
 t_14_6_02_ard <- gather_ard(t_14_6_02)
+if (nrow(t_14_6_02_ard) == 0) {
+  stop("ARD output is empty for t-14-6-02.")
+}
 
 saveRDS(t_14_6_02_ard, file.path(table_ard, "t-14-6-02.rds"))
 
