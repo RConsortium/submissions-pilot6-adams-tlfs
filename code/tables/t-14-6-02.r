@@ -12,6 +12,8 @@
 library(dplyr)
 library(tidyr)
 library(datasetjson)
+library(cards)
+library(gtsummary)
 library(gt)
 library(docorator)
 
@@ -195,7 +197,19 @@ dir.create(table_output, recursive = TRUE, showWarnings = FALSE)
 dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
 
 # ARD output (intermediate) --------------------------------------------
-saveRDS(display_data, file.path(table_ard, "t-14-6-02.rds"))
+t_14_6_02 <- display_data %>%
+  mutate(section = factor(section, levels = c("CHEMISTRY", "HEMATOLOGY"))) %>%
+  tbl_summary(
+    by = section,
+    include = PARAM,
+    statistic = list(all_categorical() ~ "{n}"),
+    missing = "no"
+  ) %>%
+  modify_header(label = "")
+
+t_14_6_02_ard <- gather_ard(t_14_6_02)
+
+saveRDS(t_14_6_02_ard, file.path(table_ard, "t-14-6-02.rds"))
 
 # Table rendering with gt -----------------------------------------------
 
