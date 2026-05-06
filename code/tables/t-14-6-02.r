@@ -133,6 +133,10 @@ hem  <- derive_lab_counts(adlbh, anl_flag = "AENTMTFL")
 
 ## Pivot wide: one row per PARAM, columns = TRT x LBNRIND_grp ----------
 pivot_wide <- function(counts, pvals) {
+  overall_freq <- counts %>%
+    group_by(PARAM, PARAMN, PARCAT1) %>%
+    summarise(overall_n = sum(n), .groups = "drop")
+
   counts %>%
     select(PARAM, PARAMN, PARCAT1, TRTA, LBNRIND_grp, cell) %>%
     pivot_wider(
@@ -140,8 +144,9 @@ pivot_wide <- function(counts, pvals) {
       values_from = cell,
       names_sep   = "||"
     ) %>%
+    left_join(overall_freq, by = c("PARAM", "PARAMN", "PARCAT1")) %>%
     left_join(pvals, by = "PARAM") %>%
-    arrange(PARAMN)
+    arrange(desc(overall_n), PARAMN)
 }
 
 chem_wide <- pivot_wide(chem$counts, chem$pvals)
@@ -170,9 +175,10 @@ tidy_section <- function(wide_df, section_label) {
   }
 
   wide_df %>%
-    select(all_of(c("PARAM", "PARCAT1", "PARAMN", col_order[-1]))) %>%
+    select(all_of(c("PARAM", "PARCAT1", "PARAMN", "overall_n", col_order[-1]))) %>%
     mutate(section = section_label) %>%
-    arrange(desc(PARAMN))
+    arrange(desc(overall_n), desc(PARAMN)) %>%
+    select(-overall_n)
 }
 
 display_data <- bind_rows(
