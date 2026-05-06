@@ -11,15 +11,15 @@
 # ----------------------------------------------------------------------------
 
 # Load required packages
-library(admiral)      # ADaM derivations
-library(dplyr)        # Data manipulation
-library(lubridate)    # Date handling
-library(haven)        # Reading/writing SAS datasets
-library(stringr)      # String manipulation
-library(purrr)        # Functional programming
-library(tibble)       # Creating tibbles
-library(datasetjson)  # Dataset JSON handling
-library(metacore)     # Metadata handling
+library(admiral) # ADaM derivations
+library(dplyr) # Data manipulation
+library(lubridate) # Date handling
+library(haven) # Reading/writing SAS datasets
+library(stringr) # String manipulation
+library(purrr) # Functional programming
+library(tibble) # Creating tibbles
+library(datasetjson) # Dataset JSON handling
+library(metacore) # Metadata handling
 library(metatools)
 
 # Import utility functions
@@ -63,8 +63,7 @@ purrr::iwalk(dat_to_load, \(file_path, var_name) {
 # filter QS domain for qstestcd = CIBIC
 adcibc00 <- qs %>%
   filter(QSTESTCD == "CIBIC") %>%
-  select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN,
-         QSSEQ)
+  select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN, QSSEQ)
 
 ## ADSL information ----------------------------------------------
 adsl_vars <- exprs(
@@ -93,16 +92,13 @@ adcibc1 <- adcibc00 %>%
     new_vars = adsl_vars,
     by = exprs(STUDYID, USUBJID)
   ) %>%
-  rename(TRTP = TRT01P,
-         TRTPN = TRT01PN)
+  rename(TRTP = TRT01P, TRTPN = TRT01PN)
 
 # Derive dates -----------------------------------------------
 # derive ADT and ADY
 adcibc2 <- adcibc1 %>%
-  derive_vars_dt(new_vars_prefix = "A",
-                 dtc = QSDTC) %>%
-  derive_vars_dy(reference_date = TRTSDT,
-                 source_vars = exprs(ADT))
+  derive_vars_dt(new_vars_prefix = "A", dtc = QSDTC) %>%
+  derive_vars_dy(reference_date = TRTSDT, source_vars = exprs(ADT))
 
 ## Derive AVISIT, AVAL, PARAM, AVISITN, PARAMN -------------------
 adcibc3 <- adcibc2 %>%
@@ -158,7 +154,6 @@ adcibc5 <- adcibc4 %>%
 # A dataset with combinations of PARAMCD, AVISIT which are expected.
 cibic_expected_obsv <- tibble::tribble(
   ~PARAMCD, ~AVISITN, ~AVISIT,
-  #"CIBICVAL", 0, "Baseline",
   "CIBICVAL", 8, "Week 8",
   "CIBICVAL", 16, "Week 16",
   "CIBICVAL", 24, "Week 24"

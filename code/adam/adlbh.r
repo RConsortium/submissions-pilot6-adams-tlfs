@@ -48,8 +48,8 @@ adlbh_spec <- metacore %>%
 
 # Create adlbh dataset -----------------
 adlb00 <- lb %>%
-  combine_supp(supplb) %>% 
-  filter(LBCAT == "HEMATOLOGY") %>% 
+  combine_supp(supplb) %>%
+  filter(LBCAT == "HEMATOLOGY") %>%
   mutate(
     LBSTNRLO = as.numeric(LBSTNRLO),
     LBSTNRHI = as.numeric(LBSTNRHI),
@@ -138,9 +138,11 @@ eot <- adlb05 %>%
 
 adlb06 <- adlb05 %>%
   # nolint start
-  filter(grepl("WEEK", VISIT, fixed = TRUE) |
-           grepl("UNSCHEDULED", VISIT, fixed = TRUE) |
-           grepl("SCREENING", VISIT, fixed = TRUE)) %>%
+  filter(
+    grepl("WEEK", VISIT, fixed = TRUE) |
+      grepl("UNSCHEDULED", VISIT, fixed = TRUE) |
+      grepl("SCREENING", VISIT, fixed = TRUE)
+  ) %>%
   # nolint end
   mutate(
     AVISIT = case_when(
@@ -232,8 +234,7 @@ adlbh10 <- adlb09 %>%
 
 adlbh <- adlbh10 %>%
   drop_unspec_vars(adlbh_spec) %>%
-  #check_ct_data(adlbh_spec, na_acceptable = TRUE) %>%
-  order_cols(adlbh_spec) %>% 
+  order_cols(adlbh_spec) %>%
   set_variable_labels(adlbh_spec)
 
 # Saving the dataset as datasetjson format --------------
