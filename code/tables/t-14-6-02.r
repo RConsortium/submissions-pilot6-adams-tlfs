@@ -211,7 +211,9 @@ t_14_6_02 <- display_data %>%
 
 t_14_6_02_ard <- gather_ard(t_14_6_02)
 if (nrow(t_14_6_02_ard) == 0) {
-  stop("ARD output is empty for t-14-6-02.")
+  stop(
+    "ARD output is empty for t-14-6-02. Check ADLBC/ADLBH analysis records and display_data derivation filters."
+  )
 }
 
 saveRDS(t_14_6_02_ard, file.path(table_ard, "t-14-6-02.rds"))
