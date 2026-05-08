@@ -216,6 +216,7 @@ adsl04 <- adsl03 %>%
     filter_add = !is.na(USUBJID)
   ) %>%
   mutate(EOSSTT = if_else(DCDECOD == "COMPLETED", "COMPLETED", "DISCONTINUED")) %>%
+  mutate(COMPLFL = if_else(EOSSTT == "COMPLETED", "Y", "N")) %>%
   derive_vars_merged(
     dataset_add = ds00,
     by_vars = exprs(STUDYID, USUBJID),
@@ -313,11 +314,10 @@ adsl07 <- adsl06 %>%
 ## Site group ----------
 # Grouping by SITEID, TRT01A to get the count fewer than 3 patients in any one treatment group.
 adsl07 <- adsl07 %>%
-  mutate(SITEGR1 = 
-           case_when(
-             SITEID %in% c("702", "706", "707", "711", "714", "715", "717") ~ "900",
-             TRUE ~ SITEID
-           ))
+  mutate(SITEGR1 = case_when(
+    SITEID %in% c("702", "706", "707", "711", "714", "715", "717") ~ "900",
+    TRUE ~ SITEID
+  ))
 
 
 # Export to xpt ----------------
