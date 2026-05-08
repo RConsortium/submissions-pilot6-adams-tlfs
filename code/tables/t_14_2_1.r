@@ -66,6 +66,7 @@ adsl_updated <- adsl %>%
   mutate(
     trt01p = fct_reorder(factor(trt01p), trt01pn),
     agegr1 = fct_reorder(factor(agegr1), agegr1n),
+    racec = fct_reorder(factor(racec), racecn),
     bmiblgr1 = factor(bmiblgr1, levels = c("<25", "25-<30", ">=30"))
   ) %>%
   # Update Sex values, as dataset values are abbreviated
@@ -76,17 +77,6 @@ adsl_updated <- adsl %>%
       TRUE ~ sex
     ),
     sex_updated = factor(sex_updated, levels = c("Male", "Female"))
-  ) %>%
-  # Add Race as collected in CRF
-  mutate(
-    race_crf = case_when(
-      ethnic == "HISPANIC OR LATINO" ~ "Hispanic",
-      race == "WHITE" ~ "Caucasian",
-      race == "BLACK OR AFRICAN AMERICAN" ~ "African Descent",
-      race == "AMERICAN INDIAN OR ALASKA NATIVE" ~ "Other",
-      TRUE ~ race
-    ),
-    race_crf = factor(race_crf, levels = c("Caucasian", "African Descent", "Hispanic", "Other"))
   )
 
 # ----------------------------------------------------------------------------
@@ -95,7 +85,7 @@ adsl_updated <- adsl %>%
 
 # The variable list is reused in several places, so keep it as vector
 summary_cols <- c(
-  "age", "agegr1", "sex_updated", "race_crf", "mmsetot",
+  "age", "agegr1", "sex_updated", "racec", "mmsetot",
   "durdis", "durdsgr1", "educlvl", "weightbl", "heightbl", "bmibl", "bmiblgr1"
 )
 
@@ -121,7 +111,7 @@ t_14_2_1 <- adsl_updated %>%
       age = "Age (y)",
       agegr1 = "Age Category",
       sex_updated = "Sex",
-      race_crf = "Race (Origin)",
+      racec = "Race (Origin)",
       mmsetot = "MMSE",
       durdis = "Duration of Disease",
       durdsgr1 = "Duration of Disease Category",
