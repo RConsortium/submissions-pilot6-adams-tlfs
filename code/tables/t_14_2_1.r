@@ -44,15 +44,18 @@ adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
 # ----------------------------------------------------------------------------
 
 format_percent <- function(x) {
-  # Apply your standard label_style_number formatting
+  # Apply standard label_style_number formatting
   default_fmt <- label_style_number(digits = 0, width = 3, align = "right", scale = 100)(x)
 
   # Replace values > 0 and < 0.01 (1%) with " <1"
   ifelse(!is.na(x) & x > 0 & x < 0.01,
     " <1",
-    ifelse(!is.na(x) & (x >= 0.01 & x < 0.1),
-           paste0("\u2007", default_fmt),
-           default_fmt)
+    ifelse(!is.na(x) & x > 0.99 & x < 1,
+      " >99",
+      ifelse(!is.na(x) & (x >= 0.01 & x < 0.095),
+             paste0("\u2007", default_fmt),
+             default_fmt)
+    )
   )
 }
 
@@ -139,7 +142,7 @@ t_14_2_1 <- adsl_updated %>%
   ) %>%
   # Column headers
   modify_header(label = "") %>%
-  modify_header(list(
+  modify_header(!!!list(
     all_stat_cols() ~ "**{level}**  \n(N={n})",
     stat_0 ~ "**Total**  \n(N={N})",
     p.value ~ "**p-value  \n[1]**"
