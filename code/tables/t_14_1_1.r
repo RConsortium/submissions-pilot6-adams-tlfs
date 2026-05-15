@@ -116,7 +116,7 @@ gt_table <-
 gt_table %>%
   as_docorator(
     display_name = "t_14_1_1",
-    display_loc  = path$table_output,
+    display_loc = path$table_output,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
       fancyrow(left = "Population: All Subjects", center = NA, right = NA)
@@ -145,6 +145,6 @@ gt_table %>%
       fancyrow(left = "at least one post-baseline ADAS-Cog and CIBIC+ assessment."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
-    save_object =  FALSE
+    save_object = FALSE
   ) %>%
   render_pdf(path$table_output)

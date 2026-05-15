@@ -188,7 +188,6 @@ adlbhy <- adlbhy %>%
   order_cols(adlbhy_spec) %>%
   sort_by_key(adlbhy_spec) %>%
   set_variable_labels(adlbhy_spec) %>%
-
   save_dataset_json(
     output_dir = path$adam,
     dataset = adlbhy,
