@@ -2,7 +2,7 @@
 
 Repo to build out more ADaM and TLF R programs for future submissions.
 
-Check out the [CDISC SAP for Datasets and TLFs](https://github.com/RConsortium/submissions-pilot6-adams-tlfs/blob/827ca9ae0025df78451ae6824c1fb8ada051c9ef/cdiscpilot01.pdf)
+Check out the [CDISC SAP Pilot for Datasets and TLFs](https://github.com/RConsortium/submissions-pilot6-adams-tlfs/blob/827ca9ae0025df78451ae6824c1fb8ada051c9ef/cdiscpilot01.pdf)
 
 Welcome to the **R Consortium Pilot6-Expansion Project** of the Submissions Working Group!
 
