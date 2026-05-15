@@ -145,6 +145,6 @@ gt_table %>%
       fancyrow(left = "at least one post-baseline ADAS-Cog and CIBIC+ assessment."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
-    save_object =  FALSE
+    save_object = FALSE
   ) %>%
   render_pdf(path$table_output)

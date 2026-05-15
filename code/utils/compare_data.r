@@ -11,8 +11,8 @@
 # ----------------------------------------------------------------------------
 
 # Load required packages
-library(diffdf)       # Data frame comparison
-library(datasetjson)  # Reading Dataset-JSON
+library(diffdf) # Data frame comparison
+library(datasetjson) # Reading Dataset-JSON
 
 # ----------------------------------------------------------------------------
 # CHECKS

@@ -8,8 +8,8 @@
 # ============================================================================
 
 library(dplyr)
-library(datasetjson)  # Dataset JSON handling
-library(metacore)     # Metadata handling
+library(datasetjson) # Dataset JSON handling
+library(metacore) # Metadata handling
 
 #' Save a dataset in Dataset-JSON format
 #'
@@ -25,9 +25,7 @@ library(metacore)     # Metadata handling
 #' # Assuming `advs_spec` is a metacore object for the ADVS dataset
 #' save_dataset_json("data/adam", advs_data, advs_spec)
 #' }
-
 save_dataset_json <- function(output_dir, dataset, ds_spec, study = NULL) {
-
   # Check parameters
   if (!is.character(output_dir)) {
     stop("Parameter 'output_dir' must be a character string.")
