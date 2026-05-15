@@ -23,7 +23,6 @@ library(docorator)
 #' # Get the relative path of the current script
 #' doc_relative_path()
 #' }
-
 doc_relative_path <- function(filename = NULL, path = NULL) {
   # Get the absolute path of the current script
   absolute_path <- doc_path(filename, path)
