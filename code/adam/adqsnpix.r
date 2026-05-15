@@ -11,15 +11,15 @@
 # ----------------------------------------------------------------------------
 
 # Load required packages
-library(admiral)      # ADaM derivations
-library(dplyr)        # Data manipulation
-library(lubridate)    # Date handling
-library(haven)        # Reading/writing SAS datasets
-library(stringr)      # String manipulation
-library(purrr)        # Functional programming
-library(tibble)       # Creating tibbles
-library(datasetjson)  # Dataset JSON handling
-library(metacore)     # Metadata handling
+library(admiral) # ADaM derivations
+library(dplyr) # Data manipulation
+library(lubridate) # Date handling
+library(haven) # Reading/writing SAS datasets
+library(stringr) # String manipulation
+library(purrr) # Functional programming
+library(tibble) # Creating tibbles
+library(datasetjson) # Dataset JSON handling
+library(metacore) # Metadata handling
 library(metatools)
 
 # Import utility functions
@@ -62,10 +62,10 @@ purrr::iwalk(dat_to_load, \(file_path, var_name) {
 # DERIVATIONS
 # ----------------------------------------------------------------------------
 
-# filter QS domain 
+# filter QS domain
 adnpix00 <- qs %>%
-   filter(startsWith(as.character(QSTESTCD), "NPTOT")) %>%
-   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN, QSSEQ)
+  filter(startsWith(as.character(QSTESTCD), "NPTOT")) %>%
+  select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN, QSSEQ)
 
 ## ADSL information ----------------------------------------------
 adsl_vars <- exprs(
@@ -96,17 +96,23 @@ adnpix01 <- adnpix00 %>%
     new_vars = adsl_vars,
     by = exprs(STUDYID, USUBJID)
   ) %>%
-  rename(TRTP = TRT01P,
-         TRTPN = TRT01PN)
+  rename(
+    TRTP = TRT01P,
+    TRTPN = TRT01PN
+  )
 
 
 # Derive dates -----------------------------------------------
 # derive ADT and ADY
 adnpix02 <- adnpix01 %>%
-  derive_vars_dt(new_vars_prefix = "A",
-                 dtc = QSDTC) %>%
-  derive_vars_dy(reference_date = TRTSDT,
-                 source_vars = exprs(ADT))
+  derive_vars_dt(
+    new_vars_prefix = "A",
+    dtc = QSDTC
+  ) %>%
+  derive_vars_dy(
+    reference_date = TRTSDT,
+    source_vars = exprs(ADT)
+  )
 
 ## Derive AVISIT, AVAL, PARAM, AVISITN, PARAMN -------------------
 adnpix03 <- adnpix02 %>%
@@ -162,7 +168,7 @@ adnpix05 <- adnpix04 %>%
 # A dataset with combinations of PARAMCD, AVISIT which are expected.
 npix_expected_obsv <- tibble::tribble(
   ~PARAMCD, ~AVISITN, ~AVISIT,
-  #"NPIXVAL", 0, "Baseline",
+  # "NPIXVAL", 0, "Baseline",
   "NPIXVAL", 8, "Week 8",
   "NPIXVAL", 16, "Week 16",
   "NPIXVAL", 24, "Week 24"
@@ -201,11 +207,11 @@ adnpix06 <- adnpix05 %>%
   mutate(
     BASE = QSSTRESN,
     CHG = (AVAL - BASE),
-    PCHG = 100*(CHG/BASE),
+    PCHG = 100 * (CHG / BASE),
     DTYPE = "",
     ABLFL = "Y",
     PARAMTYP = "DERIVED"
-)
+  )
 
 adqsnpix <- adnpix06 %>%
   mutate_if(is.numeric, as.integer) %>%
@@ -221,7 +227,7 @@ adqsnpix <- adnpix06 %>%
 # ----------------------------------------------------------------------------
 
 save_dataset_json(
- output_dir = path$adam,
+  output_dir = path$adam,
   dataset = adqsnpix,
   ds_spec = adnpix_spec
 )
