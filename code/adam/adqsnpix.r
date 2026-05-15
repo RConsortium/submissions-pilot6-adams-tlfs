@@ -1,9 +1,9 @@
 # ============================================================================
-# Program: adqscibc.r
-# Purpose: Create ADaM CIBIC+ Analysis Dataset (ADQSCIBC)
-# Description: Derives analysis variables for CIBIC+ Dataset.
+# Program: adqsnpix.r
+# Purpose: Create ADaM NPIX + Analysis Dataset (ADQNPIX)
+# Description: Derives analysis variables for NPIX + Dataset.
 # Input: SDTM domains (QS), ADaM (ADSL)
-# Output: adqscibc.json
+# Output: adqsnpix.json
 # ============================================================================
 
 # ----------------------------------------------------------------------------
@@ -37,8 +37,8 @@ metacore <- spec_to_metacore(
 )
 
 # Get the specifications for the dataset we are currently building
-adcibc_spec <- metacore %>%
-  select_dataset("ADCIBC")
+adnpix_spec <- metacore %>%
+  select_dataset("ADNPIX")
 
 # ----------------------------------------------------------------------------
 # LOAD DATASETS
@@ -49,6 +49,7 @@ dat_to_load <- list(
   adsl = file.path(path$adam, "adsl.json")
 )
 
+
 # Load datasets using map and convert blanks to NA
 purrr::iwalk(dat_to_load, \(file_path, var_name) {
   raw_data <- read_dataset_json(file_path, decimals_as_floats = TRUE)
@@ -56,13 +57,14 @@ purrr::iwalk(dat_to_load, \(file_path, var_name) {
   message(paste("Assigned variable '", var_name, "' to .GlobalEnv"))
 })
 
+
 # ----------------------------------------------------------------------------
 # DERIVATIONS
 # ----------------------------------------------------------------------------
 
-# filter QS domain for qstestcd = CIBIC
-adcibc00 <- qs %>%
-  filter(QSTESTCD == "CIBIC") %>%
+# filter QS domain
+adnpix00 <- qs %>%
+  filter(startsWith(as.character(QSTESTCD), "NPTOT")) %>%
   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN, QSSEQ)
 
 ## ADSL information ----------------------------------------------
@@ -86,22 +88,34 @@ adsl_vars <- exprs(
   COMP24FL
 )
 
-adcibc1 <- adcibc00 %>%
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
+adnpix01 <- adnpix00 %>%
   derive_vars_merged(
     dataset_add = adsl,
     new_vars = adsl_vars,
     by = exprs(STUDYID, USUBJID)
   ) %>%
-  rename(TRTP = TRT01P, TRTPN = TRT01PN)
+  rename(
+    TRTP = TRT01P,
+    TRTPN = TRT01PN
+  )
+
 
 # Derive dates -----------------------------------------------
 # derive ADT and ADY
-adcibc2 <- adcibc1 %>%
-  derive_vars_dt(new_vars_prefix = "A", dtc = QSDTC) %>%
-  derive_vars_dy(reference_date = TRTSDT, source_vars = exprs(ADT))
+adnpix02 <- adnpix01 %>%
+  derive_vars_dt(
+    new_vars_prefix = "A",
+    dtc = QSDTC
+  ) %>%
+  derive_vars_dy(
+    reference_date = TRTSDT,
+    source_vars = exprs(ADT)
+  )
 
 ## Derive AVISIT, AVAL, PARAM, AVISITN, PARAMN -------------------
-adcibc3 <- adcibc2 %>%
+adnpix03 <- adnpix02 %>%
   mutate(
     AVISIT = case_when(
       ADY <= 1 ~ "Baseline",
@@ -111,11 +125,11 @@ adcibc3 <- adcibc2 %>%
       TRUE ~ NA_character_
     ),
     AVAL = QSSTRESN,
-    PARAM = "CIBIC Score"
+    PARAM = "NPI-X (9) Total Score"
   ) %>%
-  create_var_from_codelist(adcibc_spec, AVISIT, AVISITN) %>%
-  create_var_from_codelist(adcibc_spec, PARAM, PARAMN) %>%
-  create_var_from_codelist(adcibc_spec, PARAM, PARAMCD)
+  create_var_from_codelist(adnpix_spec, AVISIT, AVISITN) %>%
+  create_var_from_codelist(adnpix_spec, PARAM, PARAMN) %>%
+  create_var_from_codelist(adnpix_spec, PARAM, PARAMCD)
 
 ## Derive AWRANGE, AWTARGET, AWTDIFF, AWLO, AWHI, AWU ----------------
 aw_lookup <- tribble(
@@ -126,8 +140,8 @@ aw_lookup <- tribble(
   "Week 24", ">140", 168, 141, NA_integer_
 )
 
-adcibc4 <- derive_vars_merged(
-  adcibc3,
+adnpix04 <- derive_vars_merged(
+  adnpix03,
   dataset_add = aw_lookup,
   by_vars = exprs(AVISIT)
 ) %>%
@@ -137,7 +151,7 @@ adcibc4 <- derive_vars_merged(
   )
 
 ## Derive ANL01FL ----------------------------------------
-adcibc5 <- adcibc4 %>%
+adnpix05 <- adnpix04 %>%
   mutate(diff = ADY - AWTARGET) %>%
   restrict_derivation(
     derivation = derive_var_extreme_flag,
@@ -152,18 +166,19 @@ adcibc5 <- adcibc4 %>%
 
 ## Derive DTYPE=LOCF -----------------------------------------
 # A dataset with combinations of PARAMCD, AVISIT which are expected.
-cibic_expected_obsv <- tibble::tribble(
+npix_expected_obsv <- tibble::tribble(
   ~PARAMCD, ~AVISITN, ~AVISIT,
-  "CIBICVAL", 8, "Week 8",
-  "CIBICVAL", 16, "Week 16",
-  "CIBICVAL", 24, "Week 24"
+  # "NPIXVAL", 0, "Baseline",
+  "NPIXVAL", 8, "Week 8",
+  "NPIXVAL", 16, "Week 16",
+  "NPIXVAL", 24, "Week 24"
 )
 
-adcibc_locf <- adcibc5 %>%
+adnpix_locf <- adnpix05 %>%
   restrict_derivation(
     derivation = derive_locf_records,
     args = params(
-      dataset_ref = cibic_expected_obsv,
+      dataset_ref = npix_expected_obsv,
       by_vars = exprs(
         STUDYID, SITEID, SITEGR1, USUBJID, TRTSDT, TRTEDT,
         TRTP, TRTPN, AGE, AGEGR1, AGEGR1N, RACE, RACEN, SEX,
@@ -188,13 +203,24 @@ adcibc_locf <- adcibc5 %>%
   ) %>%
   filter(!is.na(ADT))
 
-adqscibc <- adcibc_locf %>%
+adnpix06 <- adnpix05 %>%
+  mutate(
+    BASE = QSSTRESN,
+    CHG = (AVAL - BASE),
+    PCHG = 100 * (CHG / BASE),
+    DTYPE = "",
+    ABLFL = "Y",
+    PARAMTYP = "DERIVED"
+  )
+
+adqsnpix <- adnpix06 %>%
   mutate_if(is.numeric, as.integer) %>%
-  drop_unspec_vars(adcibc_spec) %>%
-  check_ct_data(adcibc_spec, na_acceptable = TRUE) %>%
-  order_cols(adcibc_spec) %>%
-  sort_by_key(adcibc_spec) %>%
-  set_variable_labels(adcibc_spec)
+  drop_unspec_vars(adnpix_spec) %>%
+  check_ct_data(adnpix_spec, na_acceptable = TRUE) %>%
+  order_cols(adnpix_spec) %>%
+  sort_by_key(adnpix_spec) %>%
+  set_variable_labels(adnpix_spec)
+
 
 # ----------------------------------------------------------------------------
 # EXPORT
@@ -202,6 +228,6 @@ adqscibc <- adcibc_locf %>%
 
 save_dataset_json(
   output_dir = path$adam,
-  dataset = adqscibc,
-  ds_spec = adcibc_spec
+  dataset = adqsnpix,
+  ds_spec = adnpix_spec
 )

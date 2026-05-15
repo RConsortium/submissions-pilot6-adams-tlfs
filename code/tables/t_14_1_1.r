@@ -31,9 +31,7 @@ convert_blanks_to_na_local <- function(df) {
     mutate(across(where(is.character), ~ na_if(.x, "")))
 }
 
-adsl <- read_dataset_json(
-  file.path(path$adam, "adsl.json"),
-) %>%
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
   convert_blanks_to_na_local() %>%
   rename_with(tolower)
 
@@ -56,19 +54,13 @@ population_def <- tribble(
   "saffl", "Safety",
   "efffl", "Efficacy",
   "comp24fl", "Completer Week 24",
-  "compfl", "Complete Study"
+  "complfl", "Complete Study"
 )
-
-# Derive an additional completion flag
-adsl_comp <- adsl %>%
-  mutate(
-    compfl = if_else(eosstt == "COMPLETED", "Y", "N")
-  )
 
 # Add total treatment group
 adsl_total <- bind_rows(
-  adsl_comp,
-  adsl_comp %>% mutate(trt01p = "Total")
+  adsl,
+  adsl %>% mutate(trt01p = "Total")
 ) %>%
   mutate(trt01p = factor(as.character(trt01p), levels = trt_levels))
 
@@ -124,36 +116,35 @@ gt_table <-
 gt_table %>%
   as_docorator(
     display_name = "t_14_1_1",
-    display_loc  = path$table_output,
+    display_loc = path$table_output,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
       fancyrow(left = "Population: All Subjects", center = NA, right = NA)
     ),
     footer = fancyfoot(
-      fancyrow(left =
-          paste0(
-            "NOTE: N in column headers represents number of subjects entered in study ",
-            "(i.e., signed informed consent). ",
-            "The ITT "
-          )
+      fancyrow(
+        left = paste0(
+          "NOTE: N in column headers represents number of subjects entered in study ",
+          "(i.e., signed informed consent). ",
+          "The ITT "
+        )
       ),
-      fancyrow(left =
-          paste0(
-            "population includes all subjects randomized. ",
-            "The Safety population includes all randomized subjects known to have taken at"
-          )
+      fancyrow(
+        left = paste0(
+          "population includes all subjects randomized. ",
+          "The Safety population includes all randomized subjects known to have taken at"
+        )
       ),
-      fancyrow(left =
-          paste0(
-            "least one dose of randomized study drug.",
-            "The Efficacy population includes all subjects in the safety ",
-            "population who also have"
-          )
+      fancyrow(
+        left = paste0(
+          "least one dose of randomized study drug.",
+          "The Efficacy population includes all subjects in the safety ",
+          "population who also have"
+        )
       ),
-      fancyrow(left =
-          "at least one post-baseline ADAS-Cog and CIBIC+ assessment."
-      ),
+      fancyrow(left = "at least one post-baseline ADAS-Cog and CIBIC+ assessment."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
-    )
+    ),
+    save_object = FALSE
   ) %>%
   render_pdf(path$table_output)

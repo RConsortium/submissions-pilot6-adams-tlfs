@@ -1,4 +1,5 @@
 linters: linters_with_defaults(
     line_length_linter(120),
-    pipe_consistency_linter("%>%")
+    pipe_consistency_linter("%>%"),
+    object_usage_linter = NULL
   )

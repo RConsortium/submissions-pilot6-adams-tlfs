@@ -1,0 +1,146 @@
+name: Lint R Code
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint:
+    name: Run lintr
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install lintr
+        run: |
+          install.packages("lintr", repos = "https://cloud.r-project.org")
+        shell: Rscript {0}
+
+      - name: Run lintr
+        id: run_lintr
+        run: |
+          library(lintr)
+          lints <- lint_dir("code")
+          if (length(lints) == 0) {
+            cat("LINT_PASS=true\n", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+            cat("No linting issues found.\n")
+          } else {
+            cat("LINT_PASS=false\n", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+            # Write lint results to a file for the next step
+            lint_lines <- sapply(lints, function(l) {
+              paste0(l$filename, ":", l$line_number, ":", l$column_number,
+                     " [", l$type, "] ", l$message)
+            })
+            writeLines(lint_lines, "lint_results.txt")
+            cat(paste(lint_lines, collapse = "\n"), "\n")
+          }
+        shell: Rscript {0}
+
+      - name: Find existing lintr bot comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v3
+        id: find_comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- lintr-bot -->'
+
+      - name: Post PR comment – success
+        if: >
+          github.event_name == 'pull_request' &&
+          steps.run_lintr.outputs.LINT_PASS == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            <!-- lintr-bot -->
+            ## ✅ Lintr – No Issues Found
+
+            All R files in `code/` passed linting with no findings. 🎉
+
+            ---
+            **Run locally:**
+            ```r
+            # Install lintr if needed
+            install.packages("lintr")
+
+            # Run lintr on the code directory (uses .lintr config at repo root)
+            library(lintr)
+            lintr::lint_dir("code")
+            ```
+
+      - name: Build PR comment – findings
+        if: >
+          github.event_name == 'pull_request' &&
+          steps.run_lintr.outputs.LINT_PASS == 'false'
+        id: build_comment
+        run: |
+          with open("lint_results.txt") as fh:
+              lines = [l.rstrip() for l in fh.readlines() if l.strip()]
+
+          findings = "\n".join(f"- `{l}`" for l in lines)
+          count = len(lines)
+
+          body = (
+              "<!-- lintr-bot -->\n"
+              "## ⚠️ Lintr – Issues Found\n"
+              "\n"
+              "The following linting issues were detected in `code/`. Please review and fix them before merging.\n"
+              "\n"
+              "<details>\n"
+              f"<summary>🔍 {count} finding(s) – click to expand</summary>\n"
+              "\n"
+              f"{findings}\n"
+              "\n"
+              "</details>\n"
+              "\n"
+              "---\n"
+              "**Run locally to reproduce:**\n"
+              "```r\n"
+              "# Install lintr if needed\n"
+              "install.packages(\"lintr\")\n"
+              "\n"
+              "# Run lintr on the code directory (uses .lintr config at repo root)\n"
+              "library(lintr)\n"
+              "lintr::lint_dir(\"code\")\n"
+              "```\n"
+              "\n"
+              "> Individual lines can be excluded from linting by appending "
+              "`# nolint` (or `# nolint: <linter_name>`) to that line.\n"
+          )
+
+          with open("comment_body.md", "w") as fh:
+              fh.write(body)
+        shell: python3 {0}
+
+      - name: Post PR comment – findings
+        if: >
+          github.event_name == 'pull_request' &&
+          steps.run_lintr.outputs.LINT_PASS == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body-path: comment_body.md
+
+      - name: Fail job when linting issues found
+        if: steps.run_lintr.outputs.LINT_PASS == 'false'
+        run: |
+          echo "Linting issues were found. See the PR comment for details."
+          exit 1

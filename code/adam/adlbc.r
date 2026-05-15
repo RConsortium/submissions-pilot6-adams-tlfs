@@ -21,19 +21,6 @@ library(purrr)
 library(datasetjson)
 
 ## Load datasets ------------
-# dat_to_load <- list(
-#   lb = file.path(path$sdtm, "lb.json"),
-#   supplb = file.path(path$sdtm, "supplb.json"),
-#   adsl = file.path(path$adam_json, "adsl.json")
-# )
-# 
-# datasets <- map(
-#   dat_to_load,
-#   ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
-# )
-# 
-# list2env(datasets, envir = .GlobalEnv)
-
 adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
 lb <- read_dataset_json(file.path(path$sdtm, "lb.json"), decimals_as_floats = TRUE)
 supplb <- read_dataset_json(file.path(path$sdtm, "supplb.json"), decimals_as_floats = TRUE)
