@@ -62,10 +62,10 @@ purrr::iwalk(dat_to_load, \(file_path, var_name) {
 # DERIVATIONS
 # ----------------------------------------------------------------------------
 
-# filter QS domain 
+# filter QS domain
 adnpix00 <- qs %>%
-   filter(startsWith(as.character(QSTESTCD), "NPTOT")) %>%
-   select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN, QSSEQ)
+  filter(startsWith(as.character(QSTESTCD), "NPTOT")) %>%
+  select(STUDYID, USUBJID, VISIT, VISITNUM, QSDTC, QSSTRESN, QSSEQ)
 
 ## ADSL information ----------------------------------------------
 adsl_vars <- exprs(
@@ -201,11 +201,11 @@ adnpix06 <- adnpix05 %>%
   mutate(
     BASE = QSSTRESN,
     CHG = (AVAL - BASE),
-    PCHG = 100*(CHG/BASE),
+    PCHG = 100 * (CHG / BASE),
     DTYPE = "",
     ABLFL = "Y",
     PARAMTYP = "DERIVED"
-)
+  )
 
 adqsnpix <- adnpix06 %>%
   mutate_if(is.numeric, as.integer) %>%
@@ -221,7 +221,7 @@ adqsnpix <- adnpix06 %>%
 # ----------------------------------------------------------------------------
 
 save_dataset_json(
- output_dir = path$adam,
+  output_dir = path$adam,
   dataset = adqsnpix,
   ds_spec = adnpix_spec
 )

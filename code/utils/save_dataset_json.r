@@ -108,5 +108,5 @@ save_dataset_json <- function(output_dir, dataset, ds_spec, study = NULL) {
     file_oid = file.path(path$adam, ds_name),
     columns = oid_cols
   ) %>%
-  write_dataset_json(file = file.path(output_dir, paste0(tolower(ds_name), ".json")))
+    write_dataset_json(file = file.path(output_dir, paste0(tolower(ds_name), ".json")))
 }
