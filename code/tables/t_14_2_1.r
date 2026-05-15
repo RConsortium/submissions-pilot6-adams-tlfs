@@ -22,6 +22,7 @@ library(purrr)
 
 # Import utility functions
 source(file.path("code", "utils", "doc_relative_path.r"))
+source(file.path("code", "utils", "table_functions.r"))
 
 # ----------------------------------------------------------------------------
 # Load datasets
@@ -38,26 +39,6 @@ adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
   convert_blanks_to_na_local() %>%
   rename_with(tolower) %>%
   filter(ittfl == "Y")
-
-# ----------------------------------------------------------------------------
-# Extra functions
-# ----------------------------------------------------------------------------
-
-format_percent <- function(x) {
-  # Apply standard label_style_number formatting
-  default_fmt <- label_style_number(digits = 0, width = 3, align = "right", scale = 100)(x)
-
-  # Replace values > 0 and < 0.01 (1%) with " <1"
-  ifelse(!is.na(x) & x > 0 & x < 0.01,
-    " <1",
-    ifelse(!is.na(x) & x > 0.99 & x < 1,
-      " >99",
-      ifelse(!is.na(x) & (x >= 0.01 & x < 0.095),
-             paste0("\u2007", default_fmt),
-             default_fmt)
-    )
-  )
-}
 
 # ----------------------------------------------------------------------------
 # Prepare data
