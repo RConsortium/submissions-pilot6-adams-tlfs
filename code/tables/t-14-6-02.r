@@ -3,8 +3,8 @@
 #              Normal Range) Laboratory Values During Treatment
 # Input:       adlbc.json, adlbh.json, adsl.json
 # Output:      data/tables/t-14-6-02.rds (ARD), data/tables/t-14-6-02.pdf
-# Population:  Safety (SAFFL = "Y")
-# Filter:      On-treatment records (AENTMTFL = "Y")
+# Population:  Safety population
+# Filter:      On-treatment analysis records
 #************************************************************************
 
 # Setup -----------------------------------------------------------------
@@ -103,7 +103,7 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
     # Join parameter-specific N for percentage denominator
     left_join(param_n, by = c("PARAM", "TRTA")) %>%
     mutate(
-      pct  = ifelse(!is.na(N_param) & N_param > 0, n / N_param * 100, 0),
+      pct = ifelse(!is.na(N_param) & N_param > 0, n / N_param * 100, 0),
       cell = sprintf("%d(%d%%)", n, round(pct))
     )
 
@@ -140,9 +140,9 @@ pivot_wide <- function(counts, pvals) {
   counts %>%
     select(PARAM, PARAMN, PARCAT1, TRTA, LBNRIND_grp, cell) %>%
     pivot_wider(
-      names_from  = c(TRTA, LBNRIND_grp),
+      names_from = c(TRTA, LBNRIND_grp),
       values_from = cell,
-      names_sep   = "||"
+      names_sep = "||"
     ) %>%
     left_join(overall_freq, by = c("PARAM", "PARAMN", "PARCAT1")) %>%
     left_join(pvals, by = "PARAM") %>%
@@ -260,7 +260,7 @@ build_gt <- function(data) {
     select(-PARCAT1, -PARAMN, -section) %>%
     gt(rowname_col = "PARAM") %>%
     tab_header(
-      title    = md("**Table 14-6.02**"),
+      title = md("**Table 14-6.02**"),
       subtitle = md(
         "**Frequency of Normal and Abnormal (Beyond Normal Range)**  \n**Laboratory Values During Treatment**"
       )
@@ -279,18 +279,18 @@ build_gt <- function(data) {
       p_fmt = "p-val\n[1]"
     ) %>%
     tab_spanner(
-      label   = sprintf("Placebo (N=%d)", trt_n$N[trt_n$TRT01A == "Placebo"]),
+      label = sprintf("Placebo (N=%d)", trt_n$N[trt_n$TRT01A == "Placebo"]),
       columns = starts_with("Placebo||")
     ) %>%
     tab_spanner(
-      label   = sprintf(
+      label = sprintf(
         "Xan. Low (N=%d)",
         trt_n$N[trt_n$TRT01A == "Xanomeline Low Dose"]
       ),
       columns = starts_with("Xanomeline Low Dose||")
     ) %>%
     tab_spanner(
-      label   = sprintf(
+      label = sprintf(
         "Xan. High (N=%d)",
         trt_n$N[trt_n$TRT01A == "Xanomeline High Dose"]
       ),
@@ -298,11 +298,11 @@ build_gt <- function(data) {
     ) %>%
     tab_row_group(
       label = md("**HEMATOLOGY**  \n----------"),
-      rows  = data$section == "HEMATOLOGY"
+      rows = data$section == "HEMATOLOGY"
     ) %>%
     tab_row_group(
       label = md("**CHEMISTRY**  \n----------"),
-      rows  = data$section == "CHEMISTRY"
+      rows = data$section == "CHEMISTRY"
     ) %>%
     opt_table_font(font = "Courier New") %>%
     cols_align(align = "right", columns = -PARAM) %>%
@@ -312,8 +312,8 @@ build_gt <- function(data) {
       starts_with("Xanomeline") ~ px(80)
     ) %>%
     tab_options(
-      table.font.size      = px(7),
-      data_row.padding     = px(0.5),
+      table.font.size = px(7),
+      data_row.padding = px(0.5),
       row_group.font.weight = "bold",
       table.border.top.style = "hidden",
       table.border.bottom.style = "hidden"
