@@ -165,7 +165,7 @@ col_order <- c(
 
 tidy_section <- function(wide_df, section_label) {
   # Select only columns that exist
-  existing_cols <- intersect(col_order, names(wide_df))
+  existing_cols <- intersect(c(col_order, "overall_n"), names(wide_df))
   wide_df <- wide_df %>%
     select(PARAM, PARCAT1, PARAMN, all_of(setdiff(existing_cols, "PARAM")))
 
@@ -216,13 +216,19 @@ t_14_6_02_summary_tbl <- display_data %>%
   modify_header(label = "")
 
 t_14_6_02_ard <- gather_ard(t_14_6_02_summary_tbl)
-if (nrow(t_14_6_02_ard) == 0) {
+ard_tbl <- if (is.list(t_14_6_02_ard) && "tbl_summary" %in% names(t_14_6_02_ard)) {
+  t_14_6_02_ard$tbl_summary
+} else {
+  t_14_6_02_ard
+}
+
+if (!is.data.frame(ard_tbl) || nrow(ard_tbl) == 0) {
   stop(
     "ARD output is empty for t-14-6-02. Check ADLBC/ADLBH analysis records and display_data derivation filters."
   )
 }
 
-saveRDS(t_14_6_02_ard, file.path(table_ard, "t-14-6-02.rds"))
+saveRDS(ard_tbl, file.path(table_ard, "t-14-6-02.rds"))
 
 # Table rendering with gt -----------------------------------------------
 
