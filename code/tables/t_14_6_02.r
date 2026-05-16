@@ -20,7 +20,7 @@ library(docorator)
 ## Load datasets --------------------------------------------------------
 adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_floats = TRUE)
 adlbh <- read_dataset_json(file.path(path$adam, "adlbh.json"), decimals_as_floats = TRUE)
-adsl  <- read_dataset_json(file.path(path$adam, "adsl.json"),  decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
 
 # Note: ADLBC uses ANL01FL = "Y" and ADLBH uses AENTMTFL = "Y" as analysis flags.
 
@@ -69,9 +69,9 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
   analysis <- filtered %>%
     mutate(
       worst_rank = case_when(
-        LBNRIND == "LOW"  ~ 1L,
+        LBNRIND == "LOW" ~ 1L,
         LBNRIND == "HIGH" ~ 2L,
-        TRUE              ~ 3L
+        TRUE ~ 3L
       )
     ) %>%
     group_by(USUBJID, TRTA, PARAM, PARAMN, PARCAT1) %>%
@@ -79,9 +79,9 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
     ungroup() %>%
     mutate(
       LBNRIND_grp = case_when(
-        LBNRIND == "LOW"  ~ "Low",
+        LBNRIND == "LOW" ~ "Low",
         LBNRIND == "HIGH" ~ "High",
-        TRUE              ~ "Normal"
+        TRUE ~ "Normal"
       )
     )
 
@@ -115,8 +115,11 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
       p_val = tryCatch(
         {
           tbl <- table(TRTA, abnormal)
-          if (nrow(tbl) < 2 || ncol(tbl) < 2) NA_real_
-          else chisq.test(tbl, simulate.p.value = TRUE)$p.value
+          if (nrow(tbl) < 2 || ncol(tbl) < 2) {
+            NA_real_
+          } else {
+            chisq.test(tbl, simulate.p.value = TRUE)$p.value
+          }
         },
         error = function(e) NA_real_
       ),
@@ -129,7 +132,7 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
 
 ## Run derivations for CHEM and HEM ------------------------------------
 chem <- derive_lab_counts(adlbc, anl_flag = "ANL01FL")
-hem  <- derive_lab_counts(adlbh, anl_flag = "AENTMTFL")
+hem <- derive_lab_counts(adlbh, anl_flag = "AENTMTFL")
 
 ## Pivot wide: one row per PARAM, columns = TRT x LBNRIND_grp ----------
 pivot_wide <- function(counts, pvals) {
@@ -150,7 +153,7 @@ pivot_wide <- function(counts, pvals) {
 }
 
 chem_wide <- pivot_wide(chem$counts, chem$pvals)
-hem_wide  <- pivot_wide(hem$counts,  hem$pvals)
+hem_wide <- pivot_wide(hem$counts, hem$pvals)
 
 ## Build display data ---------------------------------------------------
 # Expected treatment arm order
@@ -183,7 +186,7 @@ tidy_section <- function(wide_df, section_label) {
 
 display_data <- bind_rows(
   tidy_section(chem_wide, "CHEMISTRY"),
-  tidy_section(hem_wide,  "HEMATOLOGY")
+  tidy_section(hem_wide, "HEMATOLOGY")
 )
 
 # Output locations ------------------------------------------------------
@@ -236,8 +239,11 @@ saveRDS(ard_tbl, file.path(table_ard, "t_14_6_02.rds"))
 # Build N labels for header
 n_label <- function(trt_name) {
   n <- trt_n$N[trt_n$TRT01A == trt_name]
-  if (length(n) == 0) trt_name
-  else sprintf("%s (N=%d)", trt_name, n)
+  if (length(n) == 0) {
+    trt_name
+  } else {
+    sprintf("%s (N=%d)", trt_name, n)
+  }
 }
 
 trt_labels <- setNames(
@@ -273,15 +279,15 @@ build_gt <- function(data) {
     ) %>%
     tab_stubhead(label = "") %>%
     cols_label(
-      !!paste("Placebo",              "Low",    sep = "||") := "Low",
-      !!paste("Placebo",              "Normal", sep = "||") := "Normal",
-      !!paste("Placebo",              "High",   sep = "||") := "High",
-      !!paste("Xanomeline Low Dose",  "Low",    sep = "||") := "Low",
-      !!paste("Xanomeline Low Dose",  "Normal", sep = "||") := "Normal",
-      !!paste("Xanomeline Low Dose",  "High",   sep = "||") := "High",
-      !!paste("Xanomeline High Dose", "Low",    sep = "||") := "Low",
+      !!paste("Placebo", "Low", sep = "||") := "Low",
+      !!paste("Placebo", "Normal", sep = "||") := "Normal",
+      !!paste("Placebo", "High", sep = "||") := "High",
+      !!paste("Xanomeline Low Dose", "Low", sep = "||") := "Low",
+      !!paste("Xanomeline Low Dose", "Normal", sep = "||") := "Normal",
+      !!paste("Xanomeline Low Dose", "High", sep = "||") := "High",
+      !!paste("Xanomeline High Dose", "Low", sep = "||") := "Low",
       !!paste("Xanomeline High Dose", "Normal", sep = "||") := "Normal",
-      !!paste("Xanomeline High Dose", "High",   sep = "||") := "High",
+      !!paste("Xanomeline High Dose", "High", sep = "||") := "High",
       p_fmt = "p-val\n[1]"
     ) %>%
     tab_spanner(
