@@ -87,7 +87,8 @@ adsl_transposed_by_pop <- adsl_site_combined %>%
   ) %>%
   filter(value == "Y") %>%
   # Map population variable names to short labels for column headers
-  mutate(population =
+  mutate(
+    population =
       factor(recode(population, !!!pop_label_map),
         levels = unname(pop_label_map)
       )
@@ -111,6 +112,7 @@ spanners <- adsl_site_combined %>%
 t_14_1_3 <- adsl_transposed_by_pop %>%
   tbl_strata2(
     strata = trt01p,
+    # styler: off
     .tbl_fun =
       ~ .x %>%
       tbl_summary(
@@ -121,6 +123,7 @@ t_14_1_3 <- adsl_transposed_by_pop %>%
       ) %>%
       modify_header(all_stat_cols() ~ "**{level}**") %>%
       remove_footnote_header(columns = all_stat_cols()),
+    # styler: on
     .combine_args = list(tab_spanner = spanners)
   ) %>%
   modify_table_body(
@@ -133,8 +136,8 @@ t_14_1_3 <- adsl_transposed_by_pop %>%
       arrange(pooled_id, label)
   ) %>%
   modify_header(
-    label    = "**Site Id**",
-    pooled_id  = "**Pooled Id**",
+    label = "**Site Id**",
+    pooled_id = "**Pooled Id**",
   )
 
 # ----------------------------------------------------------------------------
@@ -165,13 +168,14 @@ gt_table <-
 gt_table %>%
   as_docorator(
     display_name = "t_14_1_3",
-    display_loc  = path$table_output,
+    display_loc = path$table_output,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
       fancyrow(left = "Population: All Subjects", center = NA, right = NA)
     ),
     footer = fancyfoot(
-      fancyrow(left =
+      fancyrow(
+        left =
           "NOTE: ITT: Number of subjects in the ITT population, Eff: Number of subjects in the Efficacy population;"
       ),
       fancyrow(left = "Com: Number of subjects completing Week 24."),
