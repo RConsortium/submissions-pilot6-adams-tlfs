@@ -19,7 +19,6 @@ library(docorator)
 library(stringr)
 library(forcats)
 library(purrr)
-
 # Import utility functions
 source(file.path("code", "utils", "doc_relative_path.r"))
 source(file.path("code", "utils", "table_functions.r"))
@@ -45,11 +44,12 @@ adlb <- bind_rows(
   read_dataset_json(file.path(path$adam, "adlbc.json")) %>%
     convert_blanks_to_na_local() %>%
     rename_with(tolower) %>%
-    filter(saffl == "Y" & (avisit > 0 | ablfl == "Y")),
+    filter(saffl == "Y" & ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y")),
   read_dataset_json(file.path(path$adam, "adlbh.json")) %>%
     convert_blanks_to_na_local() %>%
     rename_with(tolower) %>%
-    filter(saffl == "Y" & (avisit > 0 | ablfl == "Y"))
+    filter(!(paramcd %in% c("ANISO", "MACROCY", "POLYCHR", "POIKILO", "MICROCY"))) %>%
+    filter(saffl == "Y" & ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y"))
 ) %>%
   select(usubjid, trtp, trtpn, parcat1, paramcd, param, paramn, avisit, avisitn, aval, chg)
 
@@ -57,23 +57,46 @@ adlb <- bind_rows(
 # Prepare data
 # ----------------------------------------------------------------------------
 
-adlb_factorized <- adlb %>%
+adlb_updated <- adlb %>%
+  # Update Parameter Category labels
+  mutate(
+    category = case_when(
+      parcat1 == "CHEM" ~ "Chemistry",
+      parcat1 == "HEM" ~ "Hematology",
+      TRUE ~ parcat1
+    ),
+  ) %>%
   # Update End of Treatment visit label
   mutate(
     avisit = if_else(avisit == "End of Treatment", "End [1]", avisit)
   ) %>%
+  # Add factors for strata variables
   mutate(
     trtp = fct_reorder(factor(trtp), trtpn, .na_rm = TRUE),
     param = fct_reorder(factor(param), paramn, .na_rm = TRUE),
     avisit = fct_reorder(factor(avisit), avisitn, .na_rm = TRUE)
   )
 
-adlb_small <- adlb_factorized %>%
-  filter(paramcd %in% c("ALT", "AST"))
-
 # ----------------------------------------------------------------------------
 # Get table summary data
 # ----------------------------------------------------------------------------
+
+# Add spaces to align parentheses in SD values with other values in the same column
+format_meansd <- function(str, width) {
+  if (grepl(".*\\([\\d\\.]+\\)", str, perl = TRUE)) {
+    # Extract the string inside the parentheses
+    inside_parens <- sub(".*\\(([\\d\\.]+)\\).*", "\\1", str, perl = TRUE)
+    # Calculate the number of spaces needed to be added
+    num_spaces <- width - nchar(inside_parens)
+    # Add spaces before the string inside the parentheses
+    if (num_spaces < 0) {
+      num_spaces <- 0
+    }
+    str <- sub("\\(([\\d\\.]+)\\)", paste0("(", strrep("\u2007", num_spaces), "\\1)"), str, perl = TRUE)
+  } else {
+    str
+  }
+}
 
 # Function for calculating individual block trt/param/visit.
 get_individual_summary <- function(data) {
@@ -92,6 +115,12 @@ get_individual_summary <- function(data) {
       stat_1 = "N",
       stat_2 = "Mean (SD)"
     )) %>%
+    modify_table_body(
+      ~ .x %>%
+        mutate(
+          stat_2 = format_meansd(stat_2, width = 6)
+        )
+    ) %>%
     remove_footnote_header(columns = everything())
 
   # Change from baseline
@@ -104,7 +133,13 @@ get_individual_summary <- function(data) {
       statistic = c("{mean} ({sd})"),
       digits = summary_var ~ c(1, 2),
     ) %>%
-    modify_header(stat_1 = "Change Mean (SD)") %>%
+    modify_table_body(
+      ~ .x %>%
+        mutate(
+          stat_1 = format_meansd(stat_1, width = 6)
+        )
+    ) %>%
+    modify_header(stat_1 = "Mean (SD) [2]") %>%
     remove_footnote_header(columns = everything())
 
   tbl_merge(
@@ -113,7 +148,7 @@ get_individual_summary <- function(data) {
   )
 }
 
-t_14_6_1 <- adlb_small %>%
+t_14_6_1 <- adlb_updated %>%
   # Level 1 horizontal stratification: Treatment
   tbl_strata2(
     strata = trtp,
@@ -124,7 +159,7 @@ t_14_6_1 <- adlb_small %>%
       ~ .x %>%
         # Level 2 vertical stratification: Parameter Category, Parameter, and Visit
         tbl_strata2(
-          strata = c(parcat1, param, avisit),
+          strata = c(category, param, avisit),
           .tbl_fun = ~ get_individual_summary(.x),
           .combine_with = "tbl_stack",
           .sep = "#"
@@ -134,10 +169,11 @@ t_14_6_1 <- adlb_small %>%
             select(-groupname_col)
         )
   ) %>%
+  modify_header(label = "") %>%
   modify_table_body(
     ~ .x %>%
       mutate(
-        parcat1 = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 1],
+        category = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 1],
         param = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 2],
         label = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 3],
       ) %>%
@@ -147,7 +183,9 @@ t_14_6_1 <- adlb_small %>%
         stat_1_2_2 = if_else(label == "Baseline", "", stat_1_2_2),
         stat_1_2_3 = if_else(label == "Baseline", "", stat_1_2_3)
       )
-  )
+  ) %>%
+  modify_indent(columns = label, rows = row_type == "label", indent = 4L)
+
 
 # ----------------------------------------------------------------------------
 # Output data
@@ -169,38 +207,53 @@ t_14_6_1_grouped <- t_14_6_1 %>%
   modify_table_body(
     ~ .x %>%
       group_by(param, .add = TRUE) %>%
+      # Parameter spanning row
       reframe(
         add_row(
           pick(everything()),
           label = first(param),
-          parcat1 = first(parcat1),
+          row_type = "header",
+          category = first(category),
           .before = 1
         )
       ) %>%
-      group_by(parcat1, .add = TRUE) %>%
+      # Parameter blank row
       reframe(
         add_row(
           pick(everything()),
-          label = first(parcat1),
+          row_type = "header",
+          category = first(category),
           .before = 1
         )
       ) %>%
-      mutate(parcat1 = as.character(parcat1)) %>%
-      mutate(param = as.character(param))
+      # Parameter category spanning row
+      group_by(category, .add = TRUE) %>%
+      reframe(
+        add_row(
+          pick(everything()),
+          label = first(category),
+          .before = 1
+        )
+      )
   )
 
 # We have to split table into several tables to avoid mid-page split of categories
-# Each test uses 12 rows
 total_rows <- nrow(t_14_6_1_grouped$table_body)
+# Find the location of the first Hematology category row as it needs to start on a new page
+hematology_row <- which(t_14_6_1_grouped$table_body$label == "Hematology")[1]
+
 t_14_6_1_by_page <-
   t_14_6_1_grouped %>%
-  tbl_split_by_rows(row_numbers = seq(13, total_rows, by = 24))
+  tbl_split_by_rows(row_numbers = c(
+    seq(14, hematology_row, by = 12),
+    seq(hematology_row + 12, total_rows, by = 12)
+  ))
 
 gt_tables_list <- map(t_14_6_1_by_page, ~ {
   .x %>%
     as_gt(auto_align = FALSE) %>%
     tab_style(
-      style = cell_text(align = "center", v_align = "bottom"),
+      style = cell_text(align = "center", v_align = "bottom", whitespace = "pre"),
       locations = cells_column_labels(columns = everything())
     ) %>%
     cols_align(
@@ -210,6 +263,9 @@ gt_tables_list <- map(t_14_6_1_by_page, ~ {
     cols_align(
       align = "auto",
       columns = label
+    ) %>%
+    cols_width(
+      label ~ "20%",
     ) %>%
     tab_header(
       title = "Table 14-6.01",
@@ -230,6 +286,9 @@ gt_group(.list = gt_tables_list) %>%
     footer = fancyfoot(
       fancyrow(
         left = "[1] Last observed value while on treatment (prior to or at Week 24)"
+      ),
+      fancyrow(
+        left = "[2] Change from Baseline"
       ),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
