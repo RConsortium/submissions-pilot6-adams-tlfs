@@ -43,15 +43,15 @@ adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
 adlb <- bind_rows(
   read_dataset_json(file.path(path$adam, "adlbc.json")) %>%
     convert_blanks_to_na_local() %>%
-    rename_with(tolower) %>%
-    filter(saffl == "Y" & ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y")),
+    rename_with(tolower),
   read_dataset_json(file.path(path$adam, "adlbh.json")) %>%
     convert_blanks_to_na_local() %>%
     rename_with(tolower) %>%
-    filter(!(paramcd %in% c("ANISO", "MACROCY", "POLYCHR", "POIKILO", "MICROCY"))) %>%
-    filter(saffl == "Y" & ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y"))
+    filter(!(paramcd %in% c("ANISO", "MACROCY", "POLYCHR", "POIKILO", "MICROCY")))
 ) %>%
-  select(usubjid, trtp, trtpn, parcat1, paramcd, param, paramn, avisit, avisitn, aval, chg)
+  filter(!is.na(aval) & saffl == "Y" &
+           ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y")) %>%
+  select(usubjid, trta, trtan, parcat1, paramcd, param, paramn, avisit, avisitn, aval, chg)
 
 # ----------------------------------------------------------------------------
 # Prepare data
@@ -68,11 +68,11 @@ adlb_updated <- adlb %>%
   ) %>%
   # Update End of Treatment visit label
   mutate(
-    avisit = if_else(avisit == "End of Treatment", "End [1]", avisit)
+    avisit = if_else(avisit == "End of Treatment", "End [2]", avisit)
   ) %>%
   # Add factors for strata variables
   mutate(
-    trtp = fct_reorder(factor(trtp), trtpn, .na_rm = TRUE),
+    trta = fct_reorder(factor(trta), trtan, .na_rm = TRUE),
     param = fct_reorder(factor(param), paramn, .na_rm = TRUE),
     avisit = fct_reorder(factor(avisit), avisitn, .na_rm = TRUE)
   )
@@ -82,92 +82,98 @@ adlb_updated <- adlb %>%
 # ----------------------------------------------------------------------------
 
 # Add spaces to align parentheses in SD values with other values in the same column
-format_meansd <- function(str, width) {
-  if (grepl(".*\\([\\d\\.]+\\)", str, perl = TRUE)) {
-    # Extract the string inside the parentheses
-    inside_parens <- sub(".*\\(([\\d\\.]+)\\).*", "\\1", str, perl = TRUE)
-    # Calculate the number of spaces needed to be added
-    num_spaces <- width - nchar(inside_parens)
-    # Add spaces before the string inside the parentheses
-    if (num_spaces < 0) {
-      num_spaces <- 0
-    }
-    str <- sub("\\(([\\d\\.]+)\\)", paste0("(", strrep("\u2007", num_spaces), "\\1)"), str, perl = TRUE)
-  } else {
-    str
-  }
+label_style_number_width <- function(width = 6, digits = 2, ...) {
+  function(x) style_number(x, digits = digits, ...) %>% str_pad(width = width, side = "left", pad = " ")
 }
 
 # Function for calculating individual block trt/param/visit.
-get_individual_summary <- function(data) {
+get_individual_summary <- function(data, strata) {
 
-  # Analysis Value
-  aval_summary <-
+  parameter <- str_split(strata, "#", simplify = TRUE)[2]
+  print(paste0("Processing parameter: ", parameter))
+
+  # For Creatine Kinase we have to use larger width to fit SD values
+  if (parameter == "Creatine Kinase (U/L)") {
+    sd_width <- 6
+  } else {
+    sd_width <- 5
+  }
+
+  # Analysis Value N
+  stat_n <-
     data %>%
-    mutate(summary_var = aval) %>%
-    tbl_wide_summary(
-      type = summary_var ~ "continuous",
-      include = summary_var,
-      statistic = c("{N_nonmiss}", "{mean} ({sd})"),
-      digits = summary_var ~ c(0, 1, 2),
+    tbl_summary(
+      by = trta,
+      include = avisit,
+      statistic = ~"{n}",
+      label = list(avisit = parameter)
     ) %>%
-    modify_header(!!!list(
-      stat_1 = "N",
-      stat_2 = "Mean (SD)"
-    )) %>%
+    modify_header(all_stat_cols() ~ "N") %>%
+    modify_spanning_header(all_stat_cols() ~ "{level}") %>%
+    remove_footnote_header()
+
+  # Analysis Value Mean (SD)
+  stat_aval <-
+    data %>%
+    tbl_continuous(
+      by = trta,
+      variable = aval,
+      include = avisit,
+      statistic = ~"{mean} ({sd})",
+      label = list(avisit = parameter),
+      digits = ~list(mean = label_style_number(digits = 1), sd = label_style_number_width(sd_width))
+    ) %>%
+    modify_header(all_stat_cols() ~ "Mean (SD)") %>%
+    modify_spanning_header(all_stat_cols() ~ "{level}") %>%
+    remove_footnote_header()
+
+  # Change from baseline Mean (SD)
+  stat_chg <-
+    data %>%
+    tbl_continuous(
+      by = trta,
+      variable = chg,
+      include = avisit,
+      statistic = ~"{mean} ({sd})",
+      label = list(avisit = parameter),
+      digits = ~list(mean = label_style_number(digits = 1), sd = label_style_number_width(sd_width))
+    ) %>%
     modify_table_body(
       ~ .x %>%
         mutate(
-          stat_2 = format_meansd(stat_2, width = 6)
+          across(all_stat_cols(), ~ifelse(label == "Baseline", NA, .))
         )
     ) %>%
-    remove_footnote_header(columns = everything())
+    modify_header(all_stat_cols() ~ "Mean (SD) [1]") %>%
+    modify_spanning_header(all_stat_cols() ~ "{level}") %>%
+    remove_footnote_header()
 
-  # Change from baseline
-  chg_summary <-
-    data %>%
-    mutate(summary_var = chg) %>%
-    tbl_wide_summary(
-      type = summary_var ~ "continuous",
-      include = summary_var,
-      statistic = c("{mean} ({sd})"),
-      digits = summary_var ~ c(1, 2),
-    ) %>%
+  tbl_final <-
+    list(stat_n, stat_aval, stat_chg) %>%
+    tbl_merge(tab_spanner = FALSE) %>%
+    modify_header(label = "") %>%
+    modify_column_alignment(columns = all_stat_cols(), align = "right") %>%
+    # reorder the column to group the by treatment
     modify_table_body(
       ~ .x %>%
-        mutate(
-          stat_1 = format_meansd(stat_1, width = 6)
-        )
-    ) %>%
-    modify_header(stat_1 = "Mean (SD) [2]") %>%
-    remove_footnote_header(columns = everything())
-
-  tbl_merge(
-    tbls = list(aval_summary, chg_summary),
-    merge_vars = c("tbl_id1", "tbl_id1_lbl", "label", "param", "row_type", "variable", "var_type", "var_label")
-  )
+        mutate(across(all_stat_cols(), as.character)) %>%
+        {
+          stat_col_order <- select(., all_stat_cols()) %>% names() %>% sort()
+          relocate(., all_of(stat_col_order), .after = "label")
+        }
+    )
 }
 
 t_14_6_1 <- adlb_updated %>%
-  # Level 1 horizontal stratification: Treatment
   tbl_strata2(
-    strata = trtp,
-    .combine_args = list(
-      merge_vars = c("tbl_id1", "tbl_id1_lbl", "label", "variable", "var_type", "var_label", "row_type")
-    ),
-    .tbl_fun =
-      ~ .x %>%
-        # Level 2 vertical stratification: Parameter Category, Parameter, and Visit
-        tbl_strata2(
-          strata = c(category, param, avisit),
-          .tbl_fun = ~ get_individual_summary(.x),
-          .combine_with = "tbl_stack",
-          .sep = "#"
-        ) %>%
-        modify_table_body(
-          ~ .x %>%
-            select(-groupname_col)
-        )
+    strata = c(category, param),
+    .tbl_fun = get_individual_summary,
+    .combine_with = "tbl_stack",
+    .sep = "#"
+  ) %>%
+  modify_table_body(
+    ~ .x %>%
+      select(-groupname_col)
   ) %>%
   modify_header(label = "") %>%
   modify_table_body(
@@ -175,16 +181,33 @@ t_14_6_1 <- adlb_updated %>%
       mutate(
         category = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 1],
         param = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 2],
-        label = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 3],
       ) %>%
-      # Set baseline values to blank
-      mutate(
-        stat_1_2_1 = if_else(label == "Baseline", "", stat_1_2_1),
-        stat_1_2_2 = if_else(label == "Baseline", "", stat_1_2_2),
-        stat_1_2_3 = if_else(label == "Baseline", "", stat_1_2_3)
-      )
+      arrange(category, param)
   ) %>%
-  modify_indent(columns = label, rows = row_type == "label", indent = 4L)
+  modify_indent(columns = label, rows = row_type == "level", indent = 2L) %>%
+  # Add spanning rows for each parameter category
+  modify_table_body(
+    ~ .x %>%
+      # Parameter category spanning row
+      group_by(category, .add = TRUE) %>%
+      reframe(
+        add_row(
+          pick(everything()),
+          row_type = "header",
+          label = NA,
+          .before = 1
+        )
+      ) %>%
+      group_by(category, .add = TRUE) %>%
+      reframe(
+        add_row(
+          pick(everything()),
+          row_type = "header",
+          label = first(category),
+          .before = 1
+        )
+      )
+  )
 
 
 # ----------------------------------------------------------------------------
@@ -199,57 +222,29 @@ saveRDS(t_14_6_1_ard, file.path(path$table_ard, "t_14_6_1.rds"))
 
 # Save as PDF
 
-# Add spanning rows:
-# For each parameter category
-# For each parameter
-
-t_14_6_1_grouped <- t_14_6_1 %>%
-  modify_table_body(
-    ~ .x %>%
-      group_by(param, .add = TRUE) %>%
-      # Parameter spanning row
-      reframe(
-        add_row(
-          pick(everything()),
-          label = first(param),
-          row_type = "header",
-          category = first(category),
-          .before = 1
-        )
-      ) %>%
-      # Parameter blank row
-      reframe(
-        add_row(
-          pick(everything()),
-          row_type = "header",
-          category = first(category),
-          .before = 1
-        )
-      ) %>%
-      # Parameter category spanning row
-      group_by(category, .add = TRUE) %>%
-      reframe(
-        add_row(
-          pick(everything()),
-          label = first(category),
-          .before = 1
-        )
-      )
-  )
-
 # We have to split table into several tables to avoid mid-page split of categories
-total_rows <- nrow(t_14_6_1_grouped$table_body)
+total_rows <- nrow(t_14_6_1$table_body)
 # Find the location of the first Hematology category row as it needs to start on a new page
-hematology_row <- which(t_14_6_1_grouped$table_body$label == "Hematology")[1]
+hematology_row <- which(t_14_6_1$table_body$label == "Hematology")[1]
 
 t_14_6_1_by_page <-
-  t_14_6_1_grouped %>%
+  t_14_6_1 %>%
   tbl_split_by_rows(row_numbers = c(
     seq(14, hematology_row, by = 12),
-    seq(hematology_row + 12, total_rows, by = 12)
+    seq(hematology_row + 13, total_rows, by = 12)
   ))
 
 gt_tables_list <- map(t_14_6_1_by_page, ~ {
+  # For creatine kinase, we need to use different label width to fit SD values
+  is_creatine_kinase <- any(str_detect(.x$table_body$label, "Creatine Kinase \\(U/L\\)"))
+
+  if (is.na(is_creatine_kinase) || !is_creatine_kinase) {
+    label_width <- "20%"
+  } else {
+    label_width <- "15%"
+  }
+  col_width_formula <- as.formula(paste0("label ~ '", label_width, "'"))
+
   .x %>%
     as_gt(auto_align = FALSE) %>%
     tab_style(
@@ -264,9 +259,7 @@ gt_tables_list <- map(t_14_6_1_by_page, ~ {
       align = "auto",
       columns = label
     ) %>%
-    cols_width(
-      label ~ "20%",
-    ) %>%
+    cols_width(col_width_formula) %>%
     tab_header(
       title = "Table 14-6.01",
       subtitle = "Summary Statistics for Continuous Laboratory Values"
@@ -285,10 +278,10 @@ gt_group(.list = gt_tables_list) %>%
     ),
     footer = fancyfoot(
       fancyrow(
-        left = "[1] Last observed value while on treatment (prior to or at Week 24)"
+        left = "[1] Change from Baseline"
       ),
       fancyrow(
-        left = "[2] Change from Baseline"
+        left = "[2] Last observed value while on treatment (prior to or at Week 24)"
       ),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
