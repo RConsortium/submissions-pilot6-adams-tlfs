@@ -151,7 +151,7 @@ get_individual_summary <- function(data, strata) {
   tbl_final <-
     list(stat_n, stat_aval, stat_chg) %>%
     tbl_merge(tab_spanner = FALSE) %>%
-    modify_header(label = "") %>%
+    modify_header(label = "Visit") %>%
     modify_column_alignment(columns = all_stat_cols(), align = "right") %>%
     # reorder the column to group the by treatment
     modify_table_body(
@@ -175,7 +175,6 @@ t_14_6_1 <- adlb_updated %>%
     ~ .x %>%
       select(-groupname_col)
   ) %>%
-  modify_header(label = "") %>%
   modify_table_body(
     ~ .x %>%
       mutate(
@@ -248,7 +247,11 @@ gt_tables_list <- map(t_14_6_1_by_page, ~ {
     as_gt(auto_align = FALSE) %>%
     tab_style(
       style = cell_text(align = "center", v_align = "bottom", whitespace = "pre"),
-      locations = cells_column_labels(columns = everything())
+      locations = cells_column_labels(columns = all_stat_cols())
+    ) %>%
+    tab_style(
+      style = cell_text(align = "left", v_align = "bottom"),
+      locations = cells_column_labels(columns = label)
     ) %>%
     cols_align(
       align = "right",
