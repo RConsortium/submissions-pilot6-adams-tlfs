@@ -17,6 +17,10 @@ library(gtsummary)
 library(gt)
 library(docorator)
 
+## Load utility functions -------------------------------------------------
+source(file.path("code", "utils", "doc_relative_path.r"))
+source(file.path("code", "utils", "table_functions.r"))
+
 ## Load datasets --------------------------------------------------------
 adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_floats = TRUE)
 adlbh <- read_dataset_json(file.path(path$adam, "adlbh.json"), decimals_as_floats = TRUE)
@@ -103,8 +107,8 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
     # Join parameter-specific N for percentage denominator
     left_join(param_n, by = c("PARAM", "TRTA")) %>%
     mutate(
-      pct = ifelse(!is.na(N_param) & N_param > 0, n / N_param * 100, 0),
-      cell = sprintf("%d(%d%%)", n, round(pct))
+      proportion = ifelse(!is.na(N_param) & N_param > 0, n / N_param, 0),
+      cell = sprintf("%d(%s%%)", n, trimws(format_percent(proportion)))
     )
 
   # Chi-square p-value per PARAM (Low+High vs Normal, across arms)
@@ -348,7 +352,7 @@ gt_tbl %>%
     ),
     footer = fancyfoot(
       fancyrow(left = "[1] Chi-square p-value (treatment arm comparison of abnormal vs normal)."),
-      fancyrow(left = doc_path(), center = NA, right = doc_datetime())
+      fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
     geometry = geom_set(
       paperwidth = "11in",

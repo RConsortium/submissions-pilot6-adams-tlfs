@@ -416,5 +416,6 @@ setdiff
 showWarnings
 sprintf
 stubhead
+trimws
 tryCatch
 Xan
