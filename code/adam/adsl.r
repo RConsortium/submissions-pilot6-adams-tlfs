@@ -149,7 +149,18 @@ adsl00 <- dm %>%
 # Demographic grouping --------
 adsl01 <- adsl00 %>%
   create_cat_var(adsl_spec, AGE, AGEGR1, AGEGR1N) %>%
-  create_var_from_codelist(adsl_spec, RACE, RACEN)
+  create_var_from_codelist(adsl_spec, RACE, RACEN) %>%
+  # Race as collected in CRF
+  mutate(
+    RACEC = case_when(
+      ETHNIC == "HISPANIC OR LATINO" ~ "Hispanic",
+      RACE == "WHITE" ~ "Caucasian",
+      RACE == "BLACK OR AFRICAN AMERICAN" ~ "African Descent",
+      RACE == "AMERICAN INDIAN OR ALASKA NATIVE" ~ "Other",
+      TRUE ~ RACE
+    )
+  ) %>%
+  create_var_from_codelist(adsl_spec, RACEC, RACECN)
 
 # Population flags --------
 # SAFFL - Y if ITTFL='Y' and TRTSDT ne missing. N otherwise
