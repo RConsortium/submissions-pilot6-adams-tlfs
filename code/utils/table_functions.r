@@ -16,8 +16,9 @@ format_percent <- function(x) {
     ifelse(!is.na(x) & x > 0.99 & x < 1,
       " >99",
       ifelse(!is.na(x) & (x >= 0.01 & x < 0.095),
-             paste0("\u2007", default_fmt),
-             default_fmt)
+        paste0("\u2007", default_fmt),
+        default_fmt
+      )
     )
   )
 }
