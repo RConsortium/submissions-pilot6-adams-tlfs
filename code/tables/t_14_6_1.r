@@ -50,7 +50,7 @@ adlb <- bind_rows(
     filter(!(paramcd %in% c("ANISO", "MACROCY", "POLYCHR", "POIKILO", "MICROCY")))
 ) %>%
   filter(!is.na(aval) & saffl == "Y" &
-           ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y")) %>%
+    ((avisitn > 0 & avisitn < 99) | (avisitn == 99 & aentmtfl == "Y") | ablfl == "Y")) %>%
   select(usubjid, trta, trtan, parcat1, paramcd, param, paramn, avisit, avisitn, aval, chg)
 
 # ----------------------------------------------------------------------------
@@ -88,7 +88,6 @@ label_style_number_width <- function(width = 6, digits = 2, ...) {
 
 # Function for calculating individual block trt/param/visit.
 get_individual_summary <- function(data, strata) {
-
   parameter <- str_split(strata, "#", simplify = TRUE)[2]
   print(paste0("Processing parameter: ", parameter))
 
@@ -121,7 +120,7 @@ get_individual_summary <- function(data, strata) {
       include = avisit,
       statistic = ~"{mean} ({sd})",
       label = list(avisit = parameter),
-      digits = ~list(mean = label_style_number(digits = 1), sd = label_style_number_width(sd_width))
+      digits = ~ list(mean = label_style_number(digits = 1), sd = label_style_number_width(sd_width))
     ) %>%
     modify_header(all_stat_cols() ~ "Mean (SD)") %>%
     modify_spanning_header(all_stat_cols() ~ "{level}") %>%
@@ -136,12 +135,12 @@ get_individual_summary <- function(data, strata) {
       include = avisit,
       statistic = ~"{mean} ({sd})",
       label = list(avisit = parameter),
-      digits = ~list(mean = label_style_number(digits = 1), sd = label_style_number_width(sd_width))
+      digits = ~ list(mean = label_style_number(digits = 1), sd = label_style_number_width(sd_width))
     ) %>%
     modify_table_body(
       ~ .x %>%
         mutate(
-          across(all_stat_cols(), ~ifelse(label == "Baseline", NA, .))
+          across(all_stat_cols(), ~ ifelse(label == "Baseline", NA, .))
         )
     ) %>%
     modify_header(all_stat_cols() ~ "Mean (SD) [1]") %>%
@@ -158,7 +157,9 @@ get_individual_summary <- function(data, strata) {
       ~ .x %>%
         mutate(across(all_stat_cols(), as.character)) %>%
         {
-          stat_col_order <- select(., all_stat_cols()) %>% names() %>% sort()
+          stat_col_order <- select(., all_stat_cols()) %>%
+            names() %>%
+            sort()
           relocate(., all_of(stat_col_order), .after = "label")
         }
     )
