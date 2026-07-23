@@ -64,7 +64,7 @@ adlb_updated <- adlb %>%
       parcat1 == "CHEM" ~ "Chemistry",
       parcat1 == "HEM" ~ "Hematology",
       TRUE ~ parcat1
-    ),
+    )
   ) %>%
   # Update End of Treatment visit label
   mutate(
