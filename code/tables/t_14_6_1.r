@@ -173,40 +173,13 @@ t_14_6_1 <- adlb_updated %>%
   ) %>%
   modify_table_body(
     ~ .x %>%
-      select(-groupname_col)
-  ) %>%
-  modify_table_body(
-    ~ .x %>%
       mutate(
         category = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 1],
-        param = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 2],
+        param = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 2]
       ) %>%
       arrange(category, param)
   ) %>%
-  modify_indent(columns = label, rows = row_type == "level", indent = 2L) %>%
-  # Add spanning rows for each parameter category
-  modify_table_body(
-    ~ .x %>%
-      # Parameter category spanning row
-      group_by(category, .add = TRUE) %>%
-      reframe(
-        add_row(
-          pick(everything()),
-          row_type = "header",
-          label = NA,
-          .before = 1
-        )
-      ) %>%
-      group_by(category, .add = TRUE) %>%
-      reframe(
-        add_row(
-          pick(everything()),
-          row_type = "header",
-          label = first(category),
-          .before = 1
-        )
-      )
-  )
+  modify_indent(columns = label, rows = row_type == "level", indent = 2L)
 
 # ----------------------------------------------------------------------------
 # Output data
@@ -223,13 +196,13 @@ saveRDS(t_14_6_1_ard, file.path(path$table_ard, "t_14_6_1.rds"))
 # We have to split table into several tables to avoid mid-page split of categories
 total_rows <- nrow(t_14_6_1$table_body)
 # Find the location of the first Hematology category row as it needs to start on a new page
-hematology_row <- which(t_14_6_1$table_body$label == "Hematology")[1]
+hematology_row <- which(t_14_6_1$table_body$groupname_col == "Hematology")[1]
 
 t_14_6_1_by_page <-
   t_14_6_1 %>%
   tbl_split_by_rows(row_numbers = c(
-    seq(14, hematology_row, by = 12),
-    seq(hematology_row + 13, total_rows, by = 12)
+    seq(12, hematology_row, by = 12),
+    seq(hematology_row + 11, total_rows, by = 12)
   ))
 
 gt_tables_list <- map(t_14_6_1_by_page, ~ {
@@ -245,6 +218,9 @@ gt_tables_list <- map(t_14_6_1_by_page, ~ {
 
   .x %>%
     as_gt(auto_align = FALSE) %>%
+    tab_options(
+      row_group.border.bottom.style = "hidden",
+    ) %>%
     tab_style(
       style = cell_text(align = "center", v_align = "bottom", whitespace = "pre"),
       locations = cells_column_labels(columns = all_stat_cols())
