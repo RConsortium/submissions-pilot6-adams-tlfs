@@ -175,12 +175,21 @@ t_14_6_1 <- adlb_updated %>%
     ~ .x %>%
       mutate(
         category = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 1],
-        param = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 2]
+        param = str_split(tbl_id1_lbl, "#", simplify = TRUE)[, 2],
+        groupname_col = str_split(groupname_col, "#", simplify = TRUE)[, 2]
+      ) %>%
+      # Lab names are printed by groupname_col
+      filter(!(row_type == "label")) %>%
+      mutate(
+        groupname_col = case_when(
+          param == "Alanine Aminotransferase (U/L)" ~ paste(category, groupname_col, sep = "  \n  \n"),
+          param == "Basophils (GI/L)" ~ paste(category, groupname_col, sep = "  \n  \n"),
+          TRUE ~ groupname_col
+        )
       ) %>%
       arrange(category, param)
   ) %>%
   modify_indent(columns = label, rows = row_type == "level", indent = 2L)
-
 # ----------------------------------------------------------------------------
 # Output data
 # ----------------------------------------------------------------------------
@@ -195,29 +204,18 @@ saveRDS(t_14_6_1_ard, file.path(path$table_ard, "t_14_6_1.rds"))
 
 # We have to split table into several tables to avoid mid-page split of categories
 total_rows <- nrow(t_14_6_1$table_body)
-# Find the location of the first Hematology category row as it needs to start on a new page
-hematology_row <- which(t_14_6_1$table_body$groupname_col == "Hematology")[1]
+hematology_row <- which(t_14_6_1$table_body$category == "Hematology")[1]
 
 t_14_6_1_by_page <-
   t_14_6_1 %>%
   tbl_split_by_rows(row_numbers = c(
-    seq(12, hematology_row, by = 12),
-    seq(hematology_row + 11, total_rows, by = 12)
+    seq(11, hematology_row, by = 11),
+    seq(hematology_row + 10, total_rows, by = 11)
   ))
 
 gt_tables_list <- map(t_14_6_1_by_page, ~ {
-  # For creatine kinase, we need to use different label width to fit SD values
-  is_creatine_kinase <- any(str_detect(.x$table_body$label, "Creatine Kinase \\(U/L\\)"))
-
-  if (is.na(is_creatine_kinase) || !is_creatine_kinase) {
-    label_width <- "20%"
-  } else {
-    label_width <- "15%"
-  }
-  col_width_formula <- as.formula(paste0("label ~ '", label_width, "'"))
-
   .x %>%
-    as_gt(auto_align = FALSE) %>%
+    as_gt(auto_align = FALSE, process_md = TRUE) %>%
     tab_options(
       row_group.border.bottom.style = "hidden",
     ) %>%
@@ -237,7 +235,18 @@ gt_tables_list <- map(t_14_6_1_by_page, ~ {
       align = "auto",
       columns = label
     ) %>%
-    cols_width(col_width_formula) %>%
+    cols_width(
+      stat_1_1 ~ "3%",
+      stat_2_1 ~ "3%",
+      stat_3_1 ~ "3%",
+      stat_1_2 ~ "13%",
+      stat_2_2 ~ "13%",
+      stat_3_2 ~ "13%",
+      stat_1_3 ~ "13%",
+      stat_2_3 ~ "13%",
+      stat_3_3 ~ "13%",
+      label ~ "13%"
+    ) %>%
     tab_header(
       title = "Table 14-6.01",
       subtitle = "Summary Statistics for Continuous Laboratory Values"
