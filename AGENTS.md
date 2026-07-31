@@ -8,7 +8,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 ### Project layout
 - `code/adam/`: one dataset-building script per ADaM domain (e.g., `adsl.r`, `adae.r`, `advs.r`).
 - `code/utils/`: shared utilities (currently `save_dataset_json.r`).
-- `code/tables/`: one dataset-building script per ADaM domain (e.g., `adsl.r`, `adae.r`, `advs.r`).
+- `code/tables/`: one script per table (e.g., `t_14_6_01.r`).
 - `data/sdtm/`: SDTM Dataset-JSON inputs (`*.json`, tracked with DVC).
 - `data/adam/`: generated ADaM Dataset-JSON outputs (`*.json`, tracked with DVC).
 - `data/adam_reference/`: specs and define metadata inputs.
