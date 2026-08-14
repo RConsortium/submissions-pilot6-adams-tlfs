@@ -396,6 +396,7 @@ NPTOT
 Rscript
 startsWith
 trailingOnly
+aentmtfl
 chisq
 fmt
 footskip
@@ -403,12 +404,14 @@ getwd
 grp
 headheight
 lapply
+lbnrind
 LBNRIND
 lnr
 md
 ncol
 paperheight
 paperwidth
+parcat
 pvals
 px
 rowname
@@ -417,4 +420,6 @@ showWarnings
 sprintf
 stubhead
 tryCatch
+trta
+usubjid
 Xan
