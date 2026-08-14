@@ -108,7 +108,7 @@ derive_lab_counts <- function(df, anl_flag = "ANL01FL") {
     left_join(param_n, by = c("PARAM", "TRTA")) %>%
     mutate(
       proportion = ifelse(!is.na(N_param) & N_param > 0, n / N_param, 0),
-      cell = sprintf("%d(%s%%)", n, trimws(format_percent(proportion)))
+      cell = sprintf("%d(%s%%)", n, format_percent(proportion))
     )
 
   # Chi-square p-value per PARAM (Low+High vs Normal, across arms)
@@ -193,22 +193,6 @@ display_data <- bind_rows(
   tidy_section(hem_wide, "HEMATOLOGY")
 )
 
-# Output locations ------------------------------------------------------
-table_output <- if (is.null(path$table_output)) {
-  file.path(getwd(), "data/tables/pdf")
-} else {
-  path$table_output
-}
-
-table_ard <- if (is.null(path$table_ard)) {
-  file.path(getwd(), "data/tables/ard")
-} else {
-  path$table_ard
-}
-
-dir.create(table_output, recursive = TRUE, showWarnings = FALSE)
-dir.create(table_ard, recursive = TRUE, showWarnings = FALSE)
-
 # ARD output (intermediate) --------------------------------------------
 # Build a lightweight gtsummary representation from display_data solely for
 # ARD serialization; PDF rendering continues to use the custom gt layout below.
@@ -235,7 +219,7 @@ if (!is.data.frame(ard_tbl) || nrow(ard_tbl) == 0) {
   )
 }
 
-saveRDS(ard_tbl, file.path(table_ard, "t_14_6_02.rds"))
+saveRDS(ard_tbl, file.path(path$table_ard, "t_14_6_02.rds"))
 
 # Table rendering with gt -----------------------------------------------
 
@@ -344,7 +328,7 @@ gt_tbl <- build_gt(display_data)
 gt_tbl %>%
   as_docorator(
     display_name = "t_14_6_02",
-    display_loc = table_output,
+    display_loc = path$table_output,
     save_object = FALSE,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
@@ -365,11 +349,11 @@ gt_tbl %>%
       footskip = "24pt"
     )
   ) %>%
-  render_pdf(table_output)
+  render_pdf(path$table_output)
 
 message(
   "Table 14.6.02 saved: ",
-  file.path(table_ard, "t_14_6_02.rds"),
+  file.path(path$table_ard, "t_14_6_02.rds"),
   " and ",
-  file.path(table_output, "t_14_6_02.pdf")
+  file.path(path$table_output, "t_14_6_02.pdf")
 )
