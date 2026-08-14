@@ -8,6 +8,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 ### Project layout
 - `code/adam/`: one dataset-building script per ADaM domain (e.g., `adsl.r`, `adae.r`, `advs.r`).
 - `code/utils/`: shared utilities (currently `save_dataset_json.r`).
+- `code/tables/`: one script per table (e.g., `t_14_6_01.r`).
 - `data/sdtm/`: SDTM Dataset-JSON inputs (`*.json`, tracked with DVC).
 - `data/adam/`: generated ADaM Dataset-JSON outputs (`*.json`, tracked with DVC).
 - `data/adam_reference/`: specs and define metadata inputs.
@@ -38,10 +39,12 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 
 ### TLF output conventions (docorator)
 - For table/listing/figure outputs, use `gt` + `docorator` for PDF rendering.
+- Use `gtsummary` for calculating table summaries (descriptive statistics, frequencies, etc.).
 - TLF program naming convention:
   - `t_<name>.r` for tables,
   - `l_<name>.r` for listings,
   - `f_<name>.r` for figures.
+  - Use zero-padding in the last numeric segment of the name (e.g., `t_14_6_02.r`, not `t_14_6_2.r`).
 - Output artifact naming should mirror program naming (for example, `t_<name>.rds` and `t_<name>.pdf`).
 - Keep TLF programs under `code/tables/` and produce both:
   - ARD-style RDS output (for reproducible intermediate data),
@@ -69,7 +72,8 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 - Use `<-` for assignment.
 - Prefer `|>` pipelines for multi-step transformations.
 - Prefer `snake_case` for local object names and helper functions.
-- Keep CDISC variable names in canonical uppercase where required by standards.
+- Use lowercase for variable names in programming scripts (local variables, variables from source datasets).
+- Keep CDISC variable names in canonical uppercase where required by standards (variables in the final SDTM/ADaM datasets).
 - Use `dplyr::mutate()`, `dplyr::select()`, `dplyr::left_join()`, etc. in clear staged steps (avoid large monolithic mutations).
 - Prefer `case_when()` over deeply nested `ifelse()` logic.
 - Keep one logical derivation block per object to preserve traceability.
