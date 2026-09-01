@@ -49,6 +49,8 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 - Keep TLF programs under `code/tables/` and produce both:
   - ARD-style RDS output (for reproducible intermediate data),
   - PDF output (final review artifact).
+- Use `gtsummary` for table summaries, and generate ARD outputs from the gtsummary object with `gather_ard()`.
+- Do not treat `_ard` naming as sufficient; ARD files should be true gathered ARD content produced by `gather_ard()`.
 - If `code/tables/` is absent in your branch, create it manually before adding TLF programs.
 - Use configured path entries (for example `path$table_ard` and `path$table_output`) for output locations.
 - Suggested table program flow:
@@ -60,6 +62,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
   6. render with `gt` + `docorator`,
   7. save ARD `.rds` and final `.pdf`.
 - Before rendering, validate input assumptions (required variables, join keys, and unexpected missingness patterns) so issues are flagged early.
+- Avoid silently dropping dirty or missing analysis values that affect table categories; display these records explicitly in outputs.
 - Keep header/footer/footnote formatting in the table script so reviewer-facing output remains traceable and reproducible.
 - Use define metadata (`data/adam_reference/define.xml`) and ADaM variable lineage to keep table columns traceable to source domains.
 - DVC workflow for TLF work:
