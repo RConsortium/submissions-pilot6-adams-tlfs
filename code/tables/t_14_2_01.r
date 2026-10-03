@@ -46,7 +46,7 @@ adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
 
 adsl_updated <- adsl %>%
   # Factorize categorical variables to keep order in summaries
-  # BMI Category does not have a numeric vairable in ADSL, so order is defined manually
+  # BMI Category does not have a numeric variable in ADSL, so order is defined manually
   mutate(
     trt01p = fct_reorder(factor(trt01p), trt01pn),
     agegr1 = fct_reorder(factor(agegr1), agegr1n),
