@@ -1,7 +1,7 @@
 #************************************************************************
 # Purpose:     Generate Table 14.2.1 - Summary of Demographic and Baseline Characteristics
 # Input:       ADSL
-# Output:      t14_2_1.pdf
+# Output:      t14_2_01.pdf
 #************************************************************************
 
 # Note to Reviewer
@@ -74,7 +74,7 @@ summary_cols <- c(
 )
 
 # Create summary table for demographic and baseline characteristics
-t_14_2_1 <- adsl_updated %>%
+t_14_2_01 <- adsl_updated %>%
   tbl_summary(
     by = trt01p,
     type = all_continuous() ~ "continuous2",
@@ -175,18 +175,18 @@ t_14_2_1 <- adsl_updated %>%
 # ----------------------------------------------------------------------------
 
 # Convert gtsummary object to ARD format
-t_14_2_1_ard <- gather_ard(t_14_2_1)
+t_14_2_01_ard <- gather_ard(t_14_2_01)
 
 # Save ARD as RDS
-saveRDS(t_14_2_1_ard, file.path(path$table_ard, "t_14_2_1.rds"))
+saveRDS(t_14_2_01_ard, file.path(path$table_ard, "t_14_2_01.rds"))
 
 # Save as PDF
 # We have to split table into several tables to avoid mid-page split of categories
-t_14_2_1_by_page <-
-  t_14_2_1 %>%
+t_14_2_01_by_page <-
+  t_14_2_01 %>%
   tbl_split_by_rows(variables = c(sex_updated, mmsetot, educlvl, heightbl))
 
-gt_tables_list <- map(t_14_2_1_by_page, ~ {
+gt_tables_list <- map(t_14_2_01_by_page, ~ {
   .x %>%
     as_gt(auto_align = FALSE) %>%
     tab_style(
@@ -219,7 +219,7 @@ gt_tables_list <- map(t_14_2_1_by_page, ~ {
 # Add header and footer using docorator
 gt_group(.list = gt_tables_list) %>%
   as_docorator(
-    display_name = "t_14_2_1",
+    display_name = "t_14_2_01",
     display_loc  = path$table_output,
     tbl_scale = FALSE,
     header = fancyhead(
