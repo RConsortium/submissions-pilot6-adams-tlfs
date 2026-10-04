@@ -220,7 +220,7 @@ gt_tables_list <- map(t_14_2_01_by_page, ~ {
 gt_group(.list = gt_tables_list) %>%
   as_docorator(
     display_name = "t_14_2_01",
-    display_loc  = path$table_output,
+    display_loc = path$table_output,
     tbl_scale = FALSE,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
@@ -247,6 +247,6 @@ gt_group(.list = gt_tables_list) %>%
       ),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
-    save_object =  FALSE
+    save_object = FALSE
   ) %>%
   render_pdf(path$table_output)
