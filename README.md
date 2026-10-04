@@ -12,7 +12,7 @@ This pilot uses both a code repository (using git) and a separate data repositor
 the R programs for the production datasets a little setup is required so your sandbox
 has the proper coordinates and package support. 
 
-# Sandbox Setup
+# Contributor Setup and Pushing Data to DVC
 
 *Pre-requisite Steps*
 
@@ -78,6 +78,21 @@ has the proper coordinates and package support.
      path from your project root. The R production code will run the dataset is output to the
      data/adam relative path from root directory in your project sanbox.
      
+# Pulling Data from DVC
+
+Data from DVC can be pulled anonymously (without logging in) for reproducing the results.
+
+*Pre-requisite Steps*
+
+1. Ensure DVC is installed by running the command `dvc --version`. Also ensure the DVC S3 module is installed by running the command `pip install dvc[s3]`.
+
+*Pulling Data from DVC*
+
+1. Ensure DVC is configured correctly by running `dvc status`. This will check for any mismatches between the data you currently have, and the data used in the Git branch you are in.
+
+2. Run `dvc pull` to pull any new or changed files from the DVC backend.
+
+
 ## DVC Comparison
 
 Add the following alias to your local git configuration to enable easy comparison of DVC-tracked files:
