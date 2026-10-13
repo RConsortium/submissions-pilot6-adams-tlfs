@@ -160,7 +160,7 @@ advs_eot <- advs_avisit %>%
     by_vars = exprs(STUDYID, USUBJID, PARAMCD, ATPT),
     order = exprs(ADT, AVISITN, ATPTN, AVAL),
     mode = "last",
-    filter_add = (AVISITN > 2),
+    filter_add = (AVISITN >= 2 & AVISITN <= 24),
     set_values_to = exprs(
       AVISIT = "End of Treatment",
       AVISITN = 99
