@@ -6,7 +6,7 @@
 
 format_percent <- function(x) {
   # Apply standard label_style_number formatting
-  default_fmt <- label_style_number(digits = 0, width = 3, align = "right", scale = 100)(x)
+  default_fmt <- label_style_number(digits = 0, width = 3, justify = "right", scale = 100)(x)
 
   # Replace values > 0 and < 0.01 (1%) with " <1"
   # Replace values > 0.99 and < 1 (100%) with " >99"

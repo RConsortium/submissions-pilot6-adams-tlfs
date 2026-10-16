@@ -69,7 +69,7 @@ adsl_total <- bind_rows(
 # ----------------------------------------------------------------------------
 
 # Create summary table using gtsummary
-t_14_1_1 <- adsl_total %>%
+t_14_1_01 <- adsl_total %>%
   tbl_summary(
     by = trt01p,
     statistic = list(all_dichotomous() ~ "{n} ({p}%)"),
@@ -93,14 +93,14 @@ t_14_1_1 <- adsl_total %>%
 # ----------------------------------------------------------------------------
 
 # Convert gtsummary object to ARD format
-t_14_1_1_ard <- gather_ard(t_14_1_1)
+t_14_1_01_ard <- gather_ard(t_14_1_01)
 
 # Save ARD as RDS
-saveRDS(t_14_1_1_ard, file.path(path$table_ard, "t_14_1_1.rds"))
+saveRDS(t_14_1_01_ard, file.path(path$table_ard, "t_14_1_01.rds"))
 
 # Save as PDF
 gt_table <-
-  t_14_1_1 %>%
+  t_14_1_01 %>%
   as_gt() %>%
   cols_align(align = "center", columns = -label) %>%
   tab_style(
@@ -115,7 +115,7 @@ gt_table <-
 # Add header and footer using docorator
 gt_table %>%
   as_docorator(
-    display_name = "t_14_1_1",
+    display_name = "t_14_1_01",
     display_loc = path$table_output,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
@@ -126,23 +126,15 @@ gt_table %>%
         left = paste0(
           "NOTE: N in column headers represents number of subjects entered in study ",
           "(i.e., signed informed consent). ",
-          "The ITT "
-        )
-      ),
-      fancyrow(
-        left = paste0(
+          "The ITT ",
           "population includes all subjects randomized. ",
-          "The Safety population includes all randomized subjects known to have taken at"
-        )
-      ),
-      fancyrow(
-        left = paste0(
+          "The Safety population includes all randomized subjects known to have taken at",
           "least one dose of randomized study drug.",
           "The Efficacy population includes all subjects in the safety ",
-          "population who also have"
+          "population who also have",
+          "at least one post-baseline ADAS-Cog and CIBIC+ assessment."
         )
       ),
-      fancyrow(left = "at least one post-baseline ADAS-Cog and CIBIC+ assessment."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
     save_object = FALSE
