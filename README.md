@@ -61,6 +61,9 @@ has the proper coordinates and package support.
           reach out to your organization sysadmin to install Python and the Python 
           Package manager (pip).
 
+    4(c). On Windows, see [WINDOWS_SETUP.md](WINDOWS_SETUP.md). Run pip and dvc through
+          the `py` launcher (`py -m pip ...`, `py -m dvc ...`) if they are not on PATH.
+
  5. Install dvc with AWS s3 support module.
  
     $pip install dvc[s3]
@@ -86,6 +89,10 @@ Data from DVC can be pulled anonymously (without logging in) for reproducing the
 
 1. Ensure DVC is installed by running the command `dvc --version`. Also ensure the DVC S3 module is installed by running the command `pip install dvc[s3]`.
 
+> **Windows users:** `python`, `pip` and `dvc` are often not on PATH after a standard Python install. Use the
+> `py` launcher instead: `py -m pip install "dvc[s3]"`, then `py -m dvc status` and `py -m dvc pull`.
+> See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for a full walkthrough with Positron.
+
 *Pulling Data from DVC*
 
 1. Ensure DVC is configured correctly by running `dvc status`. This will check for any mismatches between the data you currently have, and the data used in the Git branch you are in.
@@ -109,6 +116,11 @@ git config --local alias.compare '!cd "${GIT_PREFIX:-.}" && "$(git rev-parse --s
 This allows you to run `git compare <file>` to compare the specified file against the current HEAD revision.
 
 Compare can be done in text and visual modes. For the visual mode you will need to have the [vde-dataset-viewer](https://github.com/defineEditor/vde-dataset-viewer). For the text mode you will need Rscript in your PATH and both `diffdf` and `datasetjson` packages installed.
+
+> **Windows users:** the compare script is a bash script, so it needs Git for Windows (which provides Git Bash).
+> It calls `dvc` directly, so `py -m dvc` is not enough here: add Python's `Scripts` folder to your PATH
+> (see [WINDOWS_SETUP.md](WINDOWS_SETUP.md)). R is usually not on PATH either, so pass it explicitly, e.g.
+> `git compare --text --r-path "C:/Program Files/R/R-4.x.x/bin/Rscript.exe" <file>`.
 
 Usage:
 
