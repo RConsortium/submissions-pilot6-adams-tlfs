@@ -1,12 +1,11 @@
 # Load required packages
 library(dplyr)
-library(rlang)
+library(purrr)
 library(datasetjson)
 library(cards)
 library(gtsummary)
 library(gt)
 library(docorator)
-library(stringr)
 
 # Import utility functions
 source(file.path("code", "utils", "doc_relative_path.r"))
@@ -15,51 +14,56 @@ source(file.path("code", "utils", "doc_relative_path.r"))
 # Local script functions
 # ----------------------------------------------------------------------------
 
-# Local helper to replace blank strings with NA
 convert_blanks_to_na_local <- function(df) {
-  df %>%
-    mutate(across(where(is.character), ~ na_if(.x, "")))
+  df %>% mutate(across(where(is.character), ~ na_if(.x, "")))
 }
 
-replace_with_mapping <- function(df, var, mapping, new_var = NULL) {
-  sym_var <- ensym(var)
-  var_name <- as_name(sym_var)
+# Insert a blank row before each new value of `group_var` (must be ordered before calling).
+insert_blank_rows_by <- function(df, group_var) {
+  group_var <- rlang::ensym(group_var)
 
-  new_expr <- enexpr(new_var)
-  if (!is.null(new_expr)) {
-    sym_new <- ensym(new_var)
-    new_name <- as_name(sym_new)
-    if (new_name %in% names(df)) {
-      stop("Argument `new_var` cannot be an existing column name.")
-    }
-  } else {
-    new_name <- NULL
+  df_marked <- df %>%
+    mutate(.insert = !!group_var != lag(!!group_var, default = (!!group_var)[1]) & row_number() > 1)
+
+  blank <- df_marked[1, ] %>% mutate(across(everything(), ~NA))
+  idx <- which(df_marked$.insert)
+  out <- df_marked
+  for (i in rev(idx)) {
+    out <- bind_rows(out[seq_len(i - 1), ], blank, out[i:nrow(out), ])
   }
 
-  out_name <- new_name %||% var_name
-  df %>%
-    mutate("{out_name}" := replace_values(!!sym_var, from = names(mapping), to = mapping))
+  out %>% select(-.insert)
 }
 
-
-suppress_repeats <- function(x) {
-  changed <- x != lag(x)
-  changed[1] <- TRUE
-  if (is.numeric(x)) {
-    ifelse(changed, x, NA)
-  } else {
-    ifelse(changed, x, "")
-  }
-}
-
-insert_blank_rows <- function(df, col) {
-  change_idx <- which(
-    df[[col]] != lead(df[[col]], default = df[[col]][nrow(df)])
-  )
-
-  blank <- df[1, ] %>% mutate(across(everything(), ~NA))
-  for (i in rev(change_idx)) {
-    df <- bind_rows(df[seq_len(i), ], blank, df[(i + 1):nrow(df), ])
+# Suppress repeating values in `suppress_vars` by replacing with blank string.
+suppress_repeats <- function(df, suppress_vars, mirror_vars = NULL) {
+  df <- df %>%
+    mutate(across(
+      any_of(suppress_vars),
+      ~ {
+        x <- as.character(.x)
+        last_val <- ""
+        result <- character(length(x))
+        for (j in seq_along(x)) {
+          if (is.na(x[j])) {
+            result[j] <- x[j]
+          } else if (x[j] == last_val) {
+            result[j] <- ""
+          } else {
+            result[j] <- x[j]
+            last_val <- x[j]
+          }
+        }
+        result
+      }
+    ))
+  if (!is.null(mirror_vars) && mirror_vars %in% names(df)) {
+    mirror_col <- mirror_vars
+    ref_col <- suppress_vars[length(suppress_vars)]
+    df <- df %>% mutate(across(
+      all_of(mirror_col),
+      ~ if_else(.data[[ref_col]] == "", "", as.character(.x))
+    ))
   }
   df
 }
@@ -76,163 +80,128 @@ advs <- read_dataset_json(file.path(path$adam, "advs.json")) %>%
   rename_with(tolower)
 
 # ----------------------------------------------------------------------------
-# Prepare data and data manipulation steps
+# Prepare data
 # ----------------------------------------------------------------------------
 tableid <- "t_14_7_02"
-# --- 1. Pre-aggregate variables used in script ---
-population <- exprs(saffl)
-population <- exprs(saffl)
-trtvar <- exprs(trta)
-trtvar_n <- exprs(trtan)
-trtvar_adsl <- exprs(trt01a)
-trtvar_adsl_n <- exprs(trt01an)
-analvar <- exprs(chg)
+analysis_var <- "chg"
+group_vars <- c("param", "atpt", "trt_disp", "avisit")
+group_var_labels <- c("Measure", "Position", "Treatment", "Planned Relative Time")
+blank_row_var <- "trt_disp"
 
-groupbyvars <- exprs(param, atpt, trt_disp, avisit)
-groupbyvars_n <- exprs(paramn, atptn, trt_dispn, avisitn)
-
-# for usage with replace_with_mapping
 trt_relabel <- list(
-  "Xanomeline Low Dose" = "Xan.Low",
-  "Xanomeline High Dose" = "Xan.High"
+  "Xanomeline Low Dose" ~ "Xan. Low",
+  "Xanomeline High Dose" ~ "Xan. High"
 )
 
-visit_relabel <- list(
-  "End of Treatment" = "End of Trt."
-)
+visit_relabel <- list("End of Treatment" ~ "End of Trt.")
 
-# data manipulation step
 adsl <- adsl %>%
-  filter(!!population[[1]] == "Y") %>%
-  replace_with_mapping(!!trtvar_adsl[[1]], trt_relabel, new_var = trt_disp) %>%
-  mutate(trt_dispn = !!trtvar_adsl_n[[1]])
+  filter(saffl == "Y") %>%
+  mutate(trt_disp = replace_values(trt01a, !!!trt_relabel)) %>%
+  mutate(trt_disp = factor(trt_disp, levels = unique(trt_disp[order(trt01an)])))
 
-# modify treatment group + visit names
 advs <- advs %>%
-  filter(!!population[[1]] == "Y") %>%
   filter(
+    saffl == "Y",
     paramcd %in% c("SYSBP", "DIABP", "PULSE"),
     avisit %in% c("Week 24", "End of Treatment")
   ) %>%
-  replace_with_mapping(!!trtvar[[1]], trt_relabel, new_var = trt_disp) %>%
-  mutate(trt_dispn = !!trtvar_n[[1]]) %>%
-  replace_with_mapping(avisit, visit_relabel) %>%
-  select(
-    usubjid, !!analvar[[1]], !!!groupbyvars, !!trtvar[[1]], trt_disp,
-    !!!groupbyvars_n, !!trtvar_n[[1]]
+  mutate(
+    trt_disp = replace_values(trta, !!!trt_relabel),
+    trt_disp = factor(trt_disp, levels = unique(trt_disp[order(trtan)])),
+    param = factor(param, levels = unique(param[order(paramn)])),
+    atpt = factor(atpt, levels = unique(atpt[order(atptn)])),
+    avisit = replace_values(avisit, !!!visit_relabel),
+    avisit = factor(avisit, levels = unique(avisit[order(avisitn)]))
   )
 
 # ----------------------------------------------------------------------------
-# Perform statistical analysis
+# Treatment-level N for header
 # ----------------------------------------------------------------------------
-# get N at treatment level
 n_trt <- adsl %>%
-  group_by(trt_disp, trt_dispn) %>%
-  summarise(n_trt = n_distinct(usubjid), .groups = "drop")
+  count(trt_disp, name = "n_trt") %>%
+  arrange(trt_disp)
 
-# get statistics at param/pos/trt/visit level
-vs_summary <- advs %>%
-  group_by(!!!groupbyvars, !!!groupbyvars_n) %>%
-  summarise(
-    n = sum(!is.na(!!analvar[[1]])),
-    mean = mean(!!analvar[[1]], na.rm = TRUE),
-    sd = sd(!!analvar[[1]], na.rm = TRUE),
-    median = median(!!analvar[[1]], na.rm = TRUE),
-    min = min(!!analvar[[1]], na.rm = TRUE),
-    max = max(!!analvar[[1]], na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(!!!groupbyvars_n)
+# ----------------------------------------------------------------------------
+# Build table: one tbl_wide_summary per param x atpt x trt_disp x avisit
+# ----------------------------------------------------------------------------
+group_keys <- advs %>%
+  group_by(across(all_of(group_vars))) %>%
+  group_keys() %>%
+  arrange(across(all_of(group_vars))) %>%
+  left_join(n_trt, by = "trt_disp")
 
-# combine statistics
-vs_summary <- vs_summary %>%
-  left_join(n_trt)
+statlist <- c("{N_nonmiss}", "{mean}", "{sd}", "{median}", "{min}", "{max}")
+statlist_labels <- c("n", "Mean", "SD", "Median", "Min.", "Max.")
 
-# prepare vs_summary in ard format ----
-t_ard <- vs_summary %>%
-  rename(variable = param, group1 = trt_disp, group1_val = trt_disp) %>%
-  tidyr::pivot_longer(
-    cols = c(n_trt, n, mean, sd, median, min, max),
-    names_to = "stat_name",
-    values_to = "stat"
-  ) %>%
-  mutate(
-    stat = as.list(stat),
-    stat_label = stat_name,
-    fmt_fun = vector("list", n()),
-    warning = vector("list", n()),
-    error = vector("list", n())
-  ) %>%
-  as_card(check = TRUE)
+tbls <- advs %>%
+  arrange(across(all_of(group_vars))) %>%
+  group_by(across(all_of(group_vars))) %>%
+  group_split() %>%
+  imap(
+    function(slice, i) {
+      tbl_wide_summary(
+        slice,
+        include = all_of(analysis_var),
+        statistic = statlist,
+        digits = setNames(list(list(N_nonmiss = 0, mean = 1, sd = 2, median = 1, min = 1, max = 1)), analysis_var),
+        label = setNames(list(" "), analysis_var)
+      ) %>%
+        modify_table_body(
+          ~ .x %>%
+            bind_cols(group_keys[i, c(group_vars, "n_trt"), drop = FALSE]) %>%
+            relocate(all_of(group_vars), .before = label) %>%
+            relocate(n_trt, .after = trt_disp)
+        ) %>%
+        modify_column_unhide(all_of(c(group_vars, "n_trt"))) %>%
+        modify_column_hide(label) %>%
+        modify_header(
+          !!!c(
+            setNames(as.list(group_var_labels), group_vars),
+            list(n_trt = "N"),
+            setNames(as.list(statlist_labels), paste0("stat_", seq_along(statlist_labels)))
+          )
+        )
+    }
+  )
 
-# prepare vs_summary for output format ----
-
-display_groupvars <- exprs(param, atpt, trt_disp)
-
-vs_display <- vs_summary %>%
-  # --- 1. suppress repeats in grouping variables
-  mutate(
-    across(c(!!!display_groupvars), suppress_repeats),
-    n_trt = ifelse(trt_disp == "", NA_integer_, n_trt)
-  ) %>%
-  # --- 2. add blank row after last value of column trt_disp
-  # use the original var (trt_dispn), not the blanked out one
-  insert_blank_rows(col = as_label(exprs(trt_dispn)[[1]])) %>%
-  # restrict to columns for table
-  # be careful: order in select does reflect columns on output
-  select(!!!display_groupvars, n_trt, avisit, n, mean, sd, median, min, max)
-
-# --- 3. Render with gt ---
 # define column widths (percentages)
+# ensure pcw has same length as group_vars
 pcw <- c(20, 15, 8, 15)
-remainderw <- (100 - sum(pcw[1:4])) / (ncol(vs_display) - 4)
+# extra 1 after length(statlist) is due to column n_trt
+remainderw <- (100 - sum(pcw[1:4])) / (length(statlist) + 1)
 
-gt_table <- vs_display %>%
-  gt() %>%
-  cols_label(
-    param = "Measure",
-    atpt = "Position",
-    trt_disp = "Treatment",
-    avisit = "Planned Relative Time",
-    # labels for statistics
-    n_trt = "N",
-    n = "n",
-    mean = "Mean",
-    sd = "SD",
-    median = "Median",
-    min = "Min.",
-    max = "Max."
+gtsum_table <- tbl_stack(tbls,
+  tbl_ids = apply(group_keys[, group_vars], 1, paste, collapse = " | ")
+) %>%
+  modify_table_body(~ insert_blank_rows_by(.x, group_var = !!sym(blank_row_var))) %>%
+  modify_table_body(~ suppress_repeats(.x, suppress_vars = head(group_vars, -1), mirror_vars = "n_trt")) %>%
+  modify_column_alignment(columns = all_of(group_vars), align = "left") %>%
+  modify_column_alignment(columns = "n_trt", align = "right") %>%
+  modify_column_alignment(
+    columns = all_of(paste0("stat_", seq_along(statlist_labels))),
+    align   = "right"
   ) %>%
+  modify_caption("**Table 14-7.02** Summary of Vital Signs Change from Baseline at End of Treatment")
+
+gt_table <- gtsum_table %>%
+  as_gt() %>%
   cols_width(
-    param ~ pct(pcw[1]),
-    atpt ~ pct(pcw[2]),
-    trt_disp ~ pct(pcw[3]),
-    avisit ~ pct(pcw[4]),
-    everything() ~ pct(remainderw)
-  ) %>%
-  fmt_number(columns = c(mean, median, min, max), decimals = 1) %>%
-  fmt_number(columns = c(sd), decimals = 2) %>%
-  sub_missing(columns = everything(), missing_text = "") %>%
-  cols_align(align = "left", columns = c(param, atpt, trt_disp)) %>%
-  cols_align(align = "right", columns = c(n_trt, n, mean, sd, median, min, max)) %>%
-  tab_style(
-    style = cell_text(align = "center"),
-    locations = cells_column_labels(columns = everything())
-  ) %>%
-  tab_header(
-    title    = "Table 14-7.02",
-    subtitle = "Summary of Vital Signs Change from Baseline at End of Treatment"
+    .list = c(
+      map2(group_vars, pcw, ~ as.formula(paste0(.x, " ~ pct(", .y, ")"))),
+      list(n_trt ~ pct(5)),
+      list(everything() ~ pct(remainderw))
+    )
   )
 
 # ----------------------------------------------------------------------------
-# Output data
+# Output
 # ----------------------------------------------------------------------------
+ard_out <- gather_ard(gtsum_table)
 
-# Save ARD as RDS
-saveRDS(t_ard, file.path(path$table_ard, paste0(tableid, ".rds")))
+saveRDS(ard_out, file.path(path$table_ard, paste0(tableid, ".rds")))
 
-# Save as PDF
-# Add header and footer using docorator
+# Save as PDF via docorator
 gt_table %>%
   as_docorator(
     display_name = tableid,
@@ -240,13 +209,13 @@ gt_table %>%
     display_loc = path$table_output,
     header = fancyhead(
       fancyrow(left = "Protocol: CDISCPILOT01", center = NA, right = doc_pagenum()),
-      fancyrow(left = "Population: All Subjects", center = NA, right = NA)
+      fancyrow(left = "Population: Safety", center = NA, right = NA)
     ),
     footer = fancyfoot(
       fancyrow(
         left = paste0(
-          "End of treatment is the last on-treatment assessment of the specified vital sign (on or before the Week 24
-visit). "
+          "End of treatment is the last on-treatment assessment of the specified ",
+          "vital sign (on or before the Week 24 visit). "
         )
       ),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
