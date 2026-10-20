@@ -118,13 +118,13 @@ advs <- advs %>%
 advs <- bind_rows(
   advs,
   advs %>%
-    filter(avisit %in% c("Week 24", "End of Treatment", "End of Trt.")) |>
+    filter(avisit %in% c("Week 24", "End of Treatment", "End of Trt.")) %>%
     mutate(
       param = "Weight Change from Baseline",
       paramn = paramn + 100,
       aval = chg
     )
-) |>
+) %>%
   mutate(param = factor(param, levels = unique(param[order(paramn)])))
 
 # ----------------------------------------------------------------------------
