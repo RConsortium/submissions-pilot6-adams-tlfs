@@ -89,8 +89,8 @@ group_var_labels <- c("Measure", "Position", "Treatment", "Planned Relative Time
 blank_row_var <- "trt_disp"
 
 trt_relabel <- list(
-  "Xanomeline Low Dose" ~ "Xan. Low",
-  "Xanomeline High Dose" ~ "Xan. High"
+  "Xanomeline Low Dose" ~ "Xan.Low",
+  "Xanomeline High Dose" ~ "Xan.High"
 )
 
 visit_relabel <- list("End of Treatment" ~ "End of Trt.")
@@ -167,7 +167,7 @@ tbls <- advs %>%
 
 # define column widths (percentages)
 # ensure pcw has same length as group_vars
-pcw <- c(20, 15, 8, 15)
+pcw <- c(20, 15, 10, 15)
 # extra 1 after length(statlist) is due to column n_trt
 remainderw <- (100 - sum(pcw[1:4])) / (length(statlist) + 1)
 
