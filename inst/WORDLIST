@@ -428,3 +428,10 @@ reframe
 sd
 weightbl
 CRF
+anyNA
+avgdd
+completers
+Completers
+cumdose
+stopifnot
+trimws
