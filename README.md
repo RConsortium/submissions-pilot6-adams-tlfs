@@ -257,6 +257,5 @@ docorator, datasetjson).
 | `Python was not found; run without arguments to install from the Microsoft Store` | You typed `python`. Use `py`. |
 | `py` is not recognized | Python isn't installed, or was installed without the launcher. Reinstall from python.org with the **py launcher** option checked. |
 | `dvc` is not recognized | Use `py -m dvc …`, or add the Scripts folder to PATH (step 4). |
-| `ERROR: No matching distribution found for install` | You typed `install` twice: `pip install install …`. |
 | `pip install` is blocked by a proxy or SSL error | Ask IT for your organization's pip proxy/index settings. |
 | `dvc pull` fails with an S3 error | Run it from the project root, and check `py -m dvc remote list` shows `myremote`. |
