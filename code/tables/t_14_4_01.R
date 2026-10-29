@@ -79,8 +79,6 @@ population_counts <- adsl_safety %>%
   ) %>%
   arrange(trt01an)
 
-population_counts
-
 # Select Week 24 completers
 adsl_completers <- adsl_safety %>%
   filter(comp24fl == "Y")
@@ -114,8 +112,6 @@ safety_summary <- adsl_safety %>%
   modify_header(all_stat_cols() ~ "**{level}**  \n(N={n})") %>%
   remove_footnote_header(columns = all_stat_cols())
 
-safety_summary
-
 # Calculate exposure summaries for completers
 completer_summary <- adsl_completers %>%
   tbl_summary(
@@ -141,8 +137,6 @@ completer_summary <- adsl_completers %>%
   modify_header(all_stat_cols() ~ "**{level}**  \n(N={n})") %>%
   remove_footnote_header(columns = all_stat_cols())
 
-completer_summary
-
 # Combine population panels
 t_14_4_01 <- tbl_merge(
   tbls = list(completer_summary, safety_summary),
@@ -166,8 +160,6 @@ t_14_4_01 <- tbl_merge(
         )
       )
   )
-
-t_14_4_01
 
 # ----------------------------------------------------------------------------
 # Output data
@@ -193,8 +185,6 @@ gt_table <- t_14_4_01 %>%
     title = "Table 14-4.01",
     subtitle = "Summary of Planned Exposure to Study Drug, as of End of Study"
   )
-
-gt_table
 
 # Render the review PDF
 gt_table %>%
