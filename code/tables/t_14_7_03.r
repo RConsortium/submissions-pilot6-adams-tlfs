@@ -193,8 +193,7 @@ gtsum_table <- tbl_stack(tbls,
   modify_column_alignment(
     columns = all_of(paste0("stat_", seq_along(statlist_labels))),
     align   = "right"
-  ) %>%
-  modify_caption("**Table 14-7.03** Summary of Weight Change from Baseline at End of Treatment")
+  )
 
 gt_table <- gtsum_table %>%
   as_gt() %>%
@@ -204,6 +203,10 @@ gt_table <- gtsum_table %>%
       list(n_trt ~ pct(5)),
       list(everything() ~ pct(remainderw))
     )
+  ) %>%
+  tab_header(
+    title = "Table 14-7.03",
+    subtitle = "Summary of Weight Change from Baseline at End of Treatment"
   )
 
 # ----------------------------------------------------------------------------
