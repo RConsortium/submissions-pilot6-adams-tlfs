@@ -12,6 +12,22 @@ This pilot uses both a code repository (using git) and a separate data repositor
 the R programs for the production datasets a little setup is required so your sandbox
 has the proper coordinates and package support. 
 
+# Quick Start (Linux / macOS)
+
+Requires R, Python 3.10+ and git. On Windows, see [Windows Setup with Positron](#windows-setup-with-positron) at the end of this README.
+
+```
+git clone https://github.com/RConsortium/submissions-pilot6-adams-tlfs.git
+cd submissions-pilot6-adams-tlfs
+pip install "dvc[s3]"
+dvc pull
+```
+
+`dvc pull` reads anonymously from the remote and fills `data/sdtm/` and `data/adam/`. Then open the project root in
+your R IDE (`.Rprofile` builds the shared `path` list from the working directory) and run the programs in
+`code/adam/` or `code/tables/`. Pushing data back requires credentials; see
+[Contributor Setup and Pushing Data to DVC](#contributor-setup-and-pushing-data-to-dvc).
+
 # Contributor Setup and Pushing Data to DVC
 
 *Pre-requisite Steps*
@@ -61,6 +77,9 @@ has the proper coordinates and package support.
           reach out to your organization sysadmin to install Python and the Python 
           Package manager (pip).
 
+    4(c). On Windows, see [Windows Setup with Positron](#windows-setup-with-positron). Run pip and dvc through
+          the `py` launcher (`py -m pip ...`, `py -m dvc ...`) if they are not on PATH.
+
  5. Install dvc with AWS s3 support module.
  
     $pip install dvc[s3]
@@ -86,6 +105,10 @@ Data from DVC can be pulled anonymously (without logging in) for reproducing the
 
 1. Ensure DVC is installed by running the command `dvc --version`. Also ensure the DVC S3 module is installed by running the command `pip install dvc[s3]`.
 
+> **Windows users:** `python`, `pip` and `dvc` are often not on PATH after a standard Python install. Use the
+> `py` launcher instead: `py -m pip install "dvc[s3]"`, then `py -m dvc status` and `py -m dvc pull`.
+> See [Windows Setup with Positron](#windows-setup-with-positron) for a full walkthrough.
+
 *Pulling Data from DVC*
 
 1. Ensure DVC is configured correctly by running `dvc status`. This will check for any mismatches between the data you currently have, and the data used in the Git branch you are in.
@@ -110,6 +133,11 @@ This allows you to run `git compare <file>` to compare the specified file agains
 
 Compare can be done in text and visual modes. For the visual mode you will need to have the [vde-dataset-viewer](https://github.com/defineEditor/vde-dataset-viewer). For the text mode you will need Rscript in your PATH and both `diffdf` and `datasetjson` packages installed.
 
+> **Windows users:** the compare script is a bash script, so it needs Git for Windows (which provides Git Bash).
+> It calls `dvc` directly, so `py -m dvc` is not enough here: add Python's `Scripts` folder to your PATH
+> (see [Windows Setup with Positron](#windows-setup-with-positron), step 4). R is usually not on PATH either, so pass it explicitly, e.g.
+> `git compare --text --r-path "C:/Program Files/R/R-4.x.x/bin/Rscript.exe" <file>`.
+
 Usage:
 
 ```
@@ -123,3 +151,111 @@ Options:
 `--r-path <path>`: Path to Rscript executable (default: Rscript in PATH)
 `--text, -t`: Use text-based comparison mode
 `--visual, -v`: Use visual comparison mode (default)
+
+# Windows Setup with Positron
+
+This section gets you from a fresh Windows machine to running the R programs in this repo from Positron.
+The SDTM/ADaM data lives in an AWS S3 bucket managed by DVC, so you need Python (for DVC) in addition to R.
+
+## 1. Prerequisites
+
+You need all three of these installed:
+
+| Tool | Check | Get it |
+|------|-------|--------|
+| R | `R --version` in a terminal, or R starts in Positron | <https://cran.r-project.org/bin/windows/base/> |
+| Positron | — | <https://positron.posit.co/download> |
+| Python 3.10+ | `py --list` (see below) | <https://www.python.org/downloads/windows/> |
+
+If you can't install software yourself, ask IT to install **Python 3 (64-bit) from python.org, with the
+"py launcher" option and "Add python.exe to PATH" checked**. The Microsoft Store version also works, but the
+python.org installer is the more reliable option on managed machines.
+
+## 2. Check whether Python is already installed
+
+Open a terminal in Positron (**Terminal > New Terminal**; it's PowerShell by default) and run:
+
+```powershell
+py --list
+```
+
+- **You see a version like `-V:3.13 *  Python 3.13 (64-bit)`:** Python is installed. Continue to step 3.
+- **`py` is not recognized:** Python isn't installed. Install it, or ask IT to (see step 1).
+
+> **Why `py` and not `python`?** On Windows, typing `python` often runs a Microsoft Store placeholder that just
+> prints *"Python was not found"*, even when Python is installed. The `py` launcher finds the real installation
+> either way, so this guide uses `py` throughout.
+
+## 3. Clone the repo and open it in Positron
+
+```powershell
+git clone https://github.com/RConsortium/submissions-pilot6-adams-tlfs.git
+```
+
+In Positron, use **File > Open Folder…** and select the `submissions-pilot6-adams-tlfs` folder. Opening the
+project root matters: `.Rprofile` builds the shared `path` list from the working directory.
+
+## 4. Install DVC with S3 support
+
+In the Positron terminal (from the project root):
+
+```powershell
+py -m pip install --upgrade pip
+py -m pip install "dvc[s3]"
+```
+
+- Keep the quotes around `"dvc[s3]"` so PowerShell passes the brackets through unchanged.
+- `py -m pip` runs pip through Python, so it works even when pip isn't on your PATH.
+
+You may see a warning that scripts were installed to a `...\Python313\Scripts` folder that is **not on PATH**.
+That's fine. Run DVC through Python instead:
+
+```powershell
+py -m dvc --version
+```
+
+<details>
+<summary>Optional: make plain <code>dvc</code> work</summary>
+
+1. Open the Start menu and search for **"Edit environment variables for your account"** (no admin needed).
+2. Under *User variables*, edit **Path** and add the `Scripts` folder from the pip warning, for example:
+   `C:\Users\<you>\AppData\Local\Programs\Python\Python313\Scripts`
+3. Fully close and reopen Positron so it picks up the new PATH.
+4. Check with `dvc --version`.
+
+</details>
+
+## 5. Pull the data
+
+The DVC remote is already configured in the repo and allows anonymous read access, so you don't need AWS
+credentials to pull:
+
+```powershell
+py -m dvc status
+py -m dvc pull
+```
+
+This fills `data/sdtm/` and `data/adam/` with the Dataset-JSON files.
+
+> To **push** data back to the bucket you do need credentials. See
+> [Contributor Setup and Pushing Data to DVC](#contributor-setup-and-pushing-data-to-dvc) above.
+
+## 6. Run the R programs
+
+Start an R console in Positron and run the scripts you need, for example:
+
+- ADaM datasets: `code/adam/adsl.r`, `code/adam/adae.r`, …
+- Tables: `code/tables/t_14_1_01.r`, …
+
+Install any missing R packages that the scripts ask for (for example admiral, metacore, gt, gtsummary,
+docorator, datasetjson).
+
+## Windows troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `Python was not found; run without arguments to install from the Microsoft Store` | You typed `python`. Use `py`. |
+| `py` is not recognized | Python isn't installed, or was installed without the launcher. Reinstall from python.org with the **py launcher** option checked. |
+| `dvc` is not recognized | Use `py -m dvc …`, or add the Scripts folder to PATH (step 4). |
+| `pip install` is blocked by a proxy or SSL error | Ask IT for your organization's pip proxy/index settings. |
+| `dvc pull` fails with an S3 error | Run it from the project root, and check `py -m dvc remote list` shows `myremote`. |
