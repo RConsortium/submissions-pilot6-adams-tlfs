@@ -133,7 +133,7 @@ tbl <- tbl %>%
 t_14_7_04_ard <- gather_ard(tbl)
 
 # Save ARD as RDS
-saveRDS(t_14_7_04_ard, file.path(path$table_ard, "t_14_7_04_ard.rds"))
+saveRDS(t_14_7_04_ard, file.path(path$table_ard, "t_14_7_04.rds"))
 
 # Save as PDF
 gt_table <-
