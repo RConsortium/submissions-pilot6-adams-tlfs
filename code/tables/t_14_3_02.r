@@ -136,11 +136,10 @@ model <- stats::lm(form, data = adcibc)
 lsm <- emmeans::lsmeans(model, specs = "trtp_rev", weights = "proportional")
 
 pairs_res <- pairs(lsm, adjust = "none")
-pairs_ci  <- confint(pairs_res)
+pairs_ci <- confint(pairs_res)
 
 # Xanomeline - Placebo
 xan_pla_comp <- function(data, full_data, by, variable) {
-
   current_trt <- as.character(data$trtp_rev[1])
 
   # Nothing is reported in the Placebo column
@@ -167,15 +166,15 @@ xan_pla_comp <- function(data, full_data, by, variable) {
   # Parse the results
   if (nrow(match_row) > 0) {
     est <- match_row$estimate
-    se  <- match_row$SE
-    p   <- match_row$p.value
+    se <- match_row$SE
+    p <- match_row$p.value
     lower <- match_ci$lower.CL
     upper <- match_ci$upper.CL
 
     list(
       est = est,
       se = se,
-      p_val   = p,
+      p_val = p,
       lower = lower,
       upper = upper
     )
@@ -183,7 +182,7 @@ xan_pla_comp <- function(data, full_data, by, variable) {
     list(
       est = NA,
       se = NA,
-      p_val   = NA,
+      p_val = NA,
       lower = NA,
       upper = NA
     )
@@ -194,8 +193,8 @@ xan_pla_comp_ard <- adcibc %>%
   ard_mvsummary(
     by = trtp,
     variables = aval,
-    statistic = everything() ~ list(ancova_diff = \(data, full_data, by, variable, ...) {
-      ancova_diff(data, full_data, by, variable)
+    statistic = everything() ~ list(xan_pla_comp = \(data, full_data, by, variable, ...) {
+      xan_pla_comp(data, full_data, by, variable)
     }),
     stat_label = everything() ~ list(
       p_val = "p-value (Xan - Placebo) [1][3]",
@@ -276,7 +275,8 @@ t_14_3_2 <- united_ard %>%
     type = aval ~ "continuous2",
     include = aval,
     statistic = list(
-      all_continuous() ~ c("{N}", "{mean} ({sd})", "{median} ({min}; {max})",
+      all_continuous() ~ c(
+        "{N}", "{mean} ({sd})", "{median} ({min}; {max})",
         "{dose_resp}", "{p_val}", "{est} ({se})", "({lower}; {upper})",
         "{p_val_xan}", "{est_xan} ({se_xan})", "({lower_xan}; {upper_xan})"
       )
