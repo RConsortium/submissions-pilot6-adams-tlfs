@@ -34,8 +34,8 @@ adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
 # Input checks -----------------------------------------------------------
 # Validate required columns are present before derivation/rendering.
 required_adsl <- c("saffl", "trt01a")
-required_adlbc <- c("saffl", "anl01fl", "usubjid", "trta", "param", "paramn", "parcat1", "lbnrind")
-required_adlbh <- c("saffl", "aentmtfl", "usubjid", "trta", "param", "paramn", "parcat1", "lbnrind")
+required_adlbc <- c("saffl", "anl01fl", "usubjid", "trta", "param", "paramcd", "paramn", "parcat1", "lbnrind")
+required_adlbh <- c("saffl", "aentmtfl", "usubjid", "trta", "param", "paramcd", "paramn", "parcat1", "lbnrind")
 
 missing_adsl <- setdiff(required_adsl, names(adsl))
 missing_adlbc <- setdiff(required_adlbc, names(adlbc))
@@ -81,7 +81,7 @@ derive_lab_counts <- function(df, anl_flag = "anl01fl") {
         TRUE ~ 3L
       )
     ) %>%
-    group_by(usubjid, trta, param, paramn, parcat1) %>%
+    group_by(usubjid, trta, param, paramcd, paramn, parcat1) %>%
     slice_min(worst_rank, n = 1, with_ties = FALSE) %>%
     ungroup() %>%
     mutate(
@@ -99,10 +99,10 @@ derive_lab_counts <- function(df, anl_flag = "anl01fl") {
 
   # Counts per param x trt x range group
   counts <- analysis %>%
-    count(param, paramn, parcat1, trta, lbnrind_grp) %>%
+    count(param, paramcd, paramn, parcat1, trta, lbnrind_grp) %>%
     # Ensure all combinations exist (fill 0 for missing cells)
     complete(
-      nesting(param, paramn, parcat1),
+      nesting(param, paramcd, paramn, parcat1),
       trta = unique(analysis$trta),
       lbnrind_grp = c("Low", "Normal", "High"),
       fill = list(n = 0L)
@@ -114,18 +114,17 @@ derive_lab_counts <- function(df, anl_flag = "anl01fl") {
       cell = sprintf("%d(%s%%)", n, format_percent(proportion))
     )
 
-  # Chi-square p-value per param (Low+High vs Normal, across arms)
+  # Fisher exact p-value per param (Low/Normal/High, across arms)
   pvals <- analysis %>%
-    mutate(abnormal = ifelse(lbnrind_grp %in% c("Low", "High"), "Abnormal", "Normal")) %>%
     group_by(param) %>%
     summarise(
       p_val = tryCatch(
         {
-          tbl <- table(trta, abnormal)
+          tbl <- table(trta, lbnrind_grp)
           if (nrow(tbl) < 2 || ncol(tbl) < 2) {
             NA_real_
           } else {
-            chisq.test(tbl, simulate.p.value = TRUE)$p.value
+            fisher.test(tbl, workspace = 2e7)$p.value
           }
         },
         error = function(e) NA_real_
@@ -144,19 +143,19 @@ hem <- derive_lab_counts(adlbh, anl_flag = "aentmtfl")
 ## Pivot wide: one row per param, columns = trt x lbnrind_grp ----------
 pivot_wide <- function(counts, pvals) {
   overall_freq <- counts %>%
-    group_by(param, paramn, parcat1) %>%
+    group_by(param, paramcd, paramn, parcat1) %>%
     summarise(overall_n = sum(n), .groups = "drop")
 
   counts %>%
-    select(param, paramn, parcat1, trta, lbnrind_grp, cell) %>%
+    select(param, paramcd, paramn, parcat1, trta, lbnrind_grp, cell) %>%
     pivot_wider(
       names_from = c(trta, lbnrind_grp),
       values_from = cell,
       names_sep = "||"
     ) %>%
-    left_join(overall_freq, by = c("param", "paramn", "parcat1")) %>%
+    left_join(overall_freq, by = c("param", "paramcd", "paramn", "parcat1")) %>%
     left_join(pvals, by = "param") %>%
-    arrange(desc(overall_n), paramn)
+    arrange(paramcd)
 }
 
 chem_wide <- pivot_wide(chem$counts, chem$pvals)
@@ -177,7 +176,7 @@ tidy_section <- function(wide_df, section_label) {
   # Select only columns that exist
   existing_cols <- intersect(c(col_order, "overall_n"), names(wide_df))
   wide_df <- wide_df %>%
-    select(param, parcat1, paramn, all_of(setdiff(existing_cols, "param")))
+    select(param, paramcd, parcat1, paramn, all_of(setdiff(existing_cols, "param")))
 
   # Fill any missing trt x lbnrind combos with blank
   for (col in setdiff(col_order[-1], names(wide_df))) {
@@ -185,9 +184,9 @@ tidy_section <- function(wide_df, section_label) {
   }
 
   wide_df %>%
-    select(all_of(c("param", "parcat1", "paramn", "overall_n", col_order[-1]))) %>%
+    select(all_of(c("param", "paramcd", "parcat1", "paramn", "overall_n", col_order[-1]))) %>%
     mutate(section = section_label) %>%
-    arrange(desc(overall_n), desc(paramn)) %>%
+    arrange(paramcd) %>%
     select(-overall_n)
 }
 
@@ -260,7 +259,7 @@ build_gt <- function(data) {
   trt_col_map <- setNames(col_order[-length(col_order)], col_order[-length(col_order)])
 
   gt_tbl <- data %>%
-    select(-parcat1, -paramn, -section) %>%
+    select(-paramcd, -parcat1, -paramn, -section) %>%
     gt(rowname_col = "param") %>%
     tab_header(
       title = md("**Table 14-6.02**"),
@@ -319,7 +318,14 @@ build_gt <- function(data) {
       data_row.padding = px(0.5),
       row_group.font.weight = "bold",
       table.border.top.style = "hidden",
-      table.border.bottom.style = "hidden"
+      table.border.bottom.style = "hidden",
+      table.border.left.style = "hidden",
+      table.border.right.style = "hidden",
+      stub.border.style = "none",
+      table_body.vlines.style = "none",
+      column_labels.vlines.style = "none",
+      row_group.border.left.style = "none",
+      row_group.border.right.style = "none"
     )
 
   gt_tbl
@@ -338,7 +344,7 @@ gt_tbl %>%
       fancyrow(left = "Population: Safety", center = NA, right = NA)
     ),
     footer = fancyfoot(
-      fancyrow(left = "[1] Chi-square p-value (treatment arm comparison of abnormal vs normal)."),
+      fancyrow(left = "[1] Fisher exact p-value (treatment arm comparison across low, normal and high categories)."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
     geometry = geom_set(
