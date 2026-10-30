@@ -22,11 +22,11 @@ source(file.path("code", "utils", "doc_relative_path.r"))
 source(file.path("code", "utils", "table_functions.r"))
 
 ## Load datasets --------------------------------------------------------
-adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json"), decimals_as_floats = TRUE) %>%
+adlbc <- read_dataset_json(file.path(path$adam, "adlbc.json")) %>%
   rename_with(tolower)
-adlbh <- read_dataset_json(file.path(path$adam, "adlbh.json"), decimals_as_floats = TRUE) %>%
+adlbh <- read_dataset_json(file.path(path$adam, "adlbh.json")) %>%
   rename_with(tolower)
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE) %>%
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
   rename_with(tolower)
 
 # Note: ADLBC uses anl01fl = "Y" and ADLBH uses aentmtfl = "Y" as analysis flags.
