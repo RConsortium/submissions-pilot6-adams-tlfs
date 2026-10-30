@@ -25,7 +25,7 @@ source(file.path("code", "utils", "doc_relative_path.r"))
 source(file.path("code", "utils", "table_functions.r"))
 
 # ----------------------------------------------------------------------------
-# Load datasets
+# Helper functions
 # ----------------------------------------------------------------------------
 
 # Local helper to replace blank strings with NA
@@ -33,6 +33,27 @@ convert_blanks_to_na_local <- function(df) {
   df %>%
     mutate(across(where(is.character), ~ na_if(.x, "")))
 }
+
+# Insert a blank row before each new value of `group_var` (must be ordered before calling).
+insert_blank_rows_by <- function(df, group_var) {
+  group_var <- rlang::ensym(group_var)
+
+  df_marked <- df %>%
+    mutate(.insert = !!group_var != lag(!!group_var, default = (!!group_var)[1]) & row_number() > 1)
+
+  blank <- df_marked[1, ] %>% mutate(across(everything(), ~NA))
+  idx <- which(df_marked$.insert)
+  out <- df_marked
+  for (i in rev(idx)) {
+    out <- bind_rows(out[seq_len(i - 1), ], blank, out[i:nrow(out), ])
+  }
+
+  out %>% select(-.insert)
+}
+
+# ----------------------------------------------------------------------------
+# Load datasets
+# ----------------------------------------------------------------------------
 
 # Convert all variable names to lowercase for code style consistency
 adsl <- read_dataset_json(file.path(path$adam, "adsl.json")) %>%
@@ -60,7 +81,6 @@ adcibc <- read_dataset_json(file.path(path$adam, "adcibc.json")) %>%
 # ----------------------------------------------------------------------------
 
 # Population counts for the header
-
 pop_count_ard <- adsl %>%
   rename(trtp = trt01p) %>%
   ard_tabulate(
@@ -84,9 +104,7 @@ continuous_stat_ard <- adcibc %>%
     fmt_fun = list(aval ~ list(N ~ 0, mean ~ 1, sd ~ 2, median ~ 1, min ~ 0, max ~ 0))
   )
 
-# Calculate dose-response statistics based on Analysis of covariance (ANCOVA)
-# model with treatment and site group as factors.
-# Test for a non-zero coefficient for treatment (dose) as a continuous variable.
+# Calculate dose-response statistics
 dose_resp <- function(data, full_data, variable) {
   # Dose response is reported only in the last column
   if (data$trtp_rev[1] != "Xanomeline High Dose") {
@@ -106,23 +124,22 @@ dose_resp_ard <- adcibc %>%
     by = trtp,
     variables = aval,
     statistic = everything() ~ list(dose_resp = \(data, full_data, variable, ...) dose_resp(data, full_data, variable)),
-    stat_label = everything() ~ list(dose_resp = "p-value(Dose Response) [1][2]"),
+    stat_label = everything() ~ list(dose_resp = "p-value (Dose Response) [1][2]"),
     fmt_fun = list(aval ~ list(dose_resp ~ 3))
   )
 
 # Pairwise comparisons of treatment groups using ANCOVA model with treatment and site group as factors.
-# 1. Fit ANCOVA model: aval ~ treatment + site group
 form <- stats::as.formula(paste0("aval  ~ trtp_rev + sitegr1"))
 model <- stats::lm(form, data = adcibc)
 
-# 2. Calculate Estimated Marginal Means and unadjusted pairwise contrasts
+# Estimated marginal means and unadjusted pairwise contrasts
 lsm <- emmeans::lsmeans(model, specs = "trtp_rev", weights = "proportional")
 
 pairs_res <- pairs(lsm, adjust = "none")
 pairs_ci  <- confint(pairs_res)
 
-# ANCOVA diff
-ancova_diff <- function(data, full_data, by, variable) {
+# Xanomeline - Placebo
+xan_pla_comp <- function(data, full_data, by, variable) {
 
   current_trt <- as.character(data$trtp_rev[1])
 
@@ -171,7 +188,6 @@ ancova_diff <- function(data, full_data, by, variable) {
       upper = NA
     )
   }
-
 }
 
 xan_pla_comp_ard <- adcibc %>%
@@ -182,7 +198,7 @@ xan_pla_comp_ard <- adcibc %>%
       ancova_diff(data, full_data, by, variable)
     }),
     stat_label = everything() ~ list(
-      p_val = "p-value(Xan - Placebo) [1][3]",
+      p_val = "p-value (Xan - Placebo) [1][3]",
       est = "Diff of LS Means",
       se = "SE",
       lower = "95% CI",
@@ -194,10 +210,7 @@ xan_pla_comp_ard <- adcibc %>%
     context = "Xan - Placebo comparison"
   )
 
-# Pairwise comparison of Xanomeline High Dose vs Xanomeline Low Dose using the
-# same ANCOVA model. Statistic names and labels are contrast-specific so the
-# rows stay distinct in tbl_ard_summary(). The contrast tag is removed from the
-# displayed labels in modify_table_body() below.
+# Xanomeline High - Xanomeline Low
 xan_xan_comp <- function(data, full_data, by, variable) {
   # The comparison is reported only in the Xanomeline High Dose column
   if (as.character(data$trtp_rev[1]) != "Xanomeline High Dose") {
@@ -235,7 +248,7 @@ xan_xan_comp_ard <- adcibc %>%
       xan_xan_comp(data, full_data, by, variable)
     }),
     stat_label = everything() ~ list(
-      p_val_xan = "p-value(Xan High - Xan Low) [1][3]",
+      p_val_xan = "p-value (Xan High - Xan Low) [1][3]",
       est_xan = "  Diff of LS Means (Xan High - Xan Low)",
       se_xan = "SE",
       lower_xan = "95% CI (Xan High - Xan Low)",
@@ -248,6 +261,7 @@ xan_xan_comp_ard <- adcibc %>%
   )
 
 
+# Get final ARD
 united_ard <- bind_ard(
   pop_count_ard,
   continuous_stat_ard,
@@ -262,9 +276,9 @@ t_14_3_2 <- united_ard %>%
     type = aval ~ "continuous2",
     include = aval,
     statistic = list(
-      all_continuous() ~ c("{N}", "{mean} ({sd})", "{median} ({min}, {max})",
-        "{dose_resp}", "{p_val}", "{est} ({se})", "({lower}, {upper})",
-        "{p_val_xan}", "{est_xan} ({se_xan})", "({lower_xan}, {upper_xan})"
+      all_continuous() ~ c("{N}", "{mean} ({sd})", "{median} ({min}; {max})",
+        "{dose_resp}", "{p_val}", "{est} ({se})", "({lower}; {upper})",
+        "{p_val_xan}", "{est_xan} ({se_xan})", "({lower_xan}; {upper_xan})"
       )
     ),
     label = list(
@@ -272,19 +286,27 @@ t_14_3_2 <- united_ard %>%
     )
   ) %>%
   modify_header(!!!list(
-    all_stat_cols() ~ "**{level}**  \n(N={n})",
+    all_stat_cols() ~ "**{level}**  \n**(N={n})**",
     label = ""
   )) %>%
   # Various formatting modifications
   modify_table_body(
     ~ .x %>%
+      # Group stats
+      mutate(stat_type = case_when(
+        row_number() %in% 1:4 ~ "cont",
+        row_number() == 5 ~ "doseresp",
+        row_number() %in% 6:8 ~ "pairwise_xan_pla",
+        row_number() %in% 9:11 ~ "pairwise_xan_xan",
+      )) %>%
+      mutate(label = str_remove_all(label, fixed(" (Xan High - Xan Low)"))) %>%
       # Remove the contrast tag that keeps the Xan-Xan labels unique in the ARD
       mutate(label = str_remove_all(label, fixed(" (Xan High - Xan Low)"))) %>%
-      # Manually set label for CI
+      # Manually set label to match shells
       mutate(label = case_when(
-        (row_type == "level" & label == "(95% CI, 95% CI)") ~ "  95% CI",
+        (row_type == "level" & label == "(95% CI; 95% CI)") ~ "  95% CI",
         (row_type == "level" & label == "N") ~ "n",
-        (row_type == "level" & label == "Median (Min, Max)") ~ "Median (Range)",
+        (row_type == "level" & label == "Median (Min; Max)") ~ "Median (Range)",
         (row_type == "level" & label == "Diff of LS Means (SE)") ~ paste0("  ", label),
         TRUE ~ label
       )) %>%
@@ -293,10 +315,11 @@ t_14_3_2 <- united_ard %>%
       mutate(across(
         all_stat_cols(),
         ~ case_when(
-          .x %in% c("NA", "NA (NA)", "(NA, NA)") ~ "",
+          .x %in% c("NA", "NA (NA)", "(NA; NA)") ~ "",
           TRUE ~ .x
         )
-      ))
+      )) %>%
+      insert_blank_rows_by(group_var = stat_type)
   )
 
 # ----------------------------------------------------------------------------
