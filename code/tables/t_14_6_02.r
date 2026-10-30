@@ -111,8 +111,8 @@ derive_lab_counts <- function(df, anl_flag = "anl01fl") {
     left_join(param_n, by = c("param", "trta")) %>%
     mutate(
       proportion = ifelse(!is.na(n_param) & n_param > 0, n / n_param, 0),
-      # Bare "0" for empty cells, padded with figure spaces so it left-aligns with the "n(pp%)" cells
-      cell = ifelse(n == 0, paste0("0", strrep(" ", 6)), sprintf("%d(%s%%)", n, format_percent(proportion)))
+      # Bare "0" for empty cells, padded with figure spaces so the 0 sits where the n digits end, just left of "("
+      cell = ifelse(n == 0, paste0("0", strrep(" ", 5)), sprintf("%d(%s%%)", n, format_percent(proportion)))
     )
 
   # Fisher exact p-value per param (Low/Normal/High, across arms)
