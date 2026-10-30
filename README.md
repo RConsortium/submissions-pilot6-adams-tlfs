@@ -68,6 +68,14 @@ has the proper coordinates and package support.
  6. With dvc[s3] module installed be sure to configure your environment by running the 
     commands to provision/refresh the access/secret keys and session token. Note the
     dvc remote configuration comes out-of-the-box with your clone of the  Pilot 6 repo.
+
+    6(a). (Optional) Install the dvc git hooks so that `git push` automatically runs
+          `dvc push` first:
+
+          $dvc install
+
+          Note this also installs a pre-commit hook that runs `dvc status` and a
+          post-checkout hook that runs `dvc checkout` when you switch branches.
     
  7. Once the dev remote is configured and your session keys and token pull the sdtm and adam 
     data sets from the dvc repote.
@@ -77,6 +85,22 @@ has the proper coordinates and package support.
   8. Run any/all of the production datasets using the R programs found under code/adam relative
      path from your project root. The R production code will run the dataset is output to the
      data/adam relative path from root directory in your project sanbox.
+
+  9. After regenerating any dataset or table output, track it with dvc, commit the updated .dvc
+     file(s) to git, and push the data to the dvc remote. Do not forget the `dvc push`: without
+     it, the .dvc files in your PR point to data that nobody else can pull.
+
+     $dvc add data/adam/adae.json
+     $git add data/adam/adae.json.dvc
+     $git commit
+     $dvc push
+     $git push
+
+     If you installed the dvc git hooks in step 6(a), `git push` runs `dvc push` for you.
+
+     A GitHub Actions check ('Check DVC Remote') runs on every pull request and fails if any
+     .dvc file references data that is not on the dvc remote. If it fails, run `dvc push` and
+     re-run the check.
      
 # Pulling Data from DVC
 

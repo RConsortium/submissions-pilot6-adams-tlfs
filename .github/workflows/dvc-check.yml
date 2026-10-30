@@ -1,0 +1,51 @@
+name: Check DVC Remote
+
+# Fails if any .dvc file references data that has not been uploaded to the DVC
+# remote (i.e. someone ran `dvc add` + `git commit` but forgot `dvc push`).
+# Uses the remote's anonymous read access, so no secrets are required and the
+# check also works for PRs from forks. No data is downloaded; DVC only checks
+# whether each referenced object exists on the remote.
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  dvc-remote:
+    name: Verify DVC data is pushed
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install DVC
+        run: pip install "dvc[s3]>=3,<4"
+
+      - name: Check that all DVC-tracked data exists on the remote
+        run: |
+          # With no local cache in CI, `dvc status --cloud` reports:
+          #   "deleted" -> object is on the remote (OK)
+          #   "missing" -> object is on neither the remote nor locally (not pushed)
+          # Note: dvc exits 0 even when objects are missing, so parse the JSON.
+          dvc status --cloud --json > dvc_status.json
+          missing=$(jq -r 'to_entries[] | select(.value == "missing") | .key' dvc_status.json)
+          if [ -n "$missing" ]; then
+            echo "The following DVC-tracked files are not on the DVC remote:"
+            while read -r f; do
+              echo "::error file=${f}.dvc::${f} is referenced by ${f}.dvc but was not found on the DVC remote. Run 'dvc push' and re-run this check."
+              echo "  $f"
+            done <<< "$missing"
+            exit 1
+          fi
+          echo "All $(jq 'length' dvc_status.json) DVC-tracked files are present on the remote."
