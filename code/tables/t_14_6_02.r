@@ -111,7 +111,8 @@ derive_lab_counts <- function(df, anl_flag = "anl01fl") {
     left_join(param_n, by = c("param", "trta")) %>%
     mutate(
       proportion = ifelse(!is.na(n_param) & n_param > 0, n / n_param, 0),
-      cell = sprintf("%d(%s%%)", n, format_percent(proportion))
+      # Bare "0" for empty cells, padded with figure spaces so it left-aligns with the "n(pp%)" cells
+      cell = ifelse(n == 0, paste0("0", strrep(" ", 6)), sprintf("%d(%s%%)", n, format_percent(proportion)))
     )
 
   # Fisher exact p-value per param (Low/Normal/High, across arms)
@@ -260,14 +261,14 @@ build_gt <- function(data) {
 
   gt_tbl <- data %>%
     select(-paramcd, -parcat1, -paramn, -section) %>%
-    gt(rowname_col = "param") %>%
+    gt() %>%
     tab_header(
       title = md("**Table 14-6.02**"),
       subtitle = md(
         "**Frequency of Normal and Abnormal (Beyond Normal Range)**  \n**Laboratory Values During Treatment**"
       )
     ) %>%
-    tab_stubhead(label = "") %>%
+    cols_label(param = "") %>%
     cols_label(
       !!paste("Placebo", "Low", sep = "||") := "Low",
       !!paste("Placebo", "Normal", sep = "||") := "Normal",
@@ -308,6 +309,7 @@ build_gt <- function(data) {
     ) %>%
     opt_table_font(font = "Courier New") %>%
     cols_align(align = "right", columns = -param) %>%
+    cols_align(align = "left", columns = param) %>%
     cols_width(
       param ~ px(200),
       starts_with("Placebo||") ~ px(80),
