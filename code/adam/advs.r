@@ -90,9 +90,9 @@ param_lookup <- paramcd_codelist %>%
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 
-vs <- read_dataset_json(file.path(path$sdtm, "vs.json"), decimals_as_floats = TRUE)
+vs <- read_dataset_json(file.path(path$sdtm, "vs.json"))
 
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS

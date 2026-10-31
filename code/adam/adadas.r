@@ -22,9 +22,9 @@ library(datasetjson)
 library(purrr)
 
 ## Load datasets ------------
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
-dm <- read_dataset_json(file.path(path$sdtm, "dm.json"), decimals_as_floats = TRUE)
-qs <- read_dataset_json(file.path(path$sdtm, "qs.json"), decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
+dm <- read_dataset_json(file.path(path$sdtm, "dm.json"))
+qs <- read_dataset_json(file.path(path$sdtm, "qs.json"))
 
 ## Load dataset specs -----------
 metacore <- spec_to_metacore(

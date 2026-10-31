@@ -28,7 +28,7 @@ dat_to_load <- list(
 
 datasets <- map(
   dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
+  ~ convert_blanks_to_na(read_dataset_json(.x))
 )
 
 list2env(datasets, envir = .GlobalEnv)

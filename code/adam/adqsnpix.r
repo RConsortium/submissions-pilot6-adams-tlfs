@@ -52,7 +52,7 @@ dat_to_load <- list(
 
 # Load datasets using map and convert blanks to NA
 purrr::iwalk(dat_to_load, \(file_path, var_name) {
-  raw_data <- read_dataset_json(file_path, decimals_as_floats = TRUE)
+  raw_data <- read_dataset_json(file_path)
   assign(var_name, raw_data, envir = .GlobalEnv)
   message(paste("Assigned variable '", var_name, "' to .GlobalEnv"))
 })

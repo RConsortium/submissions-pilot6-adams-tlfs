@@ -31,7 +31,7 @@ dat_to_load <- c("dm", "ds", "qs", "ex", "qs", "sv", "vs", "sc", "mh")
 
 datasets <- map(
   dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(file.path(path$sdtm, paste0(.x, ".json")), decimals_as_floats = TRUE))
+  ~ convert_blanks_to_na(read_dataset_json(file.path(path$sdtm, paste0(.x, ".json"))))
 ) %>%
   setNames(dat_to_load)
 

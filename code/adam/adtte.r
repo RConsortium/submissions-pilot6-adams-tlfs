@@ -20,9 +20,9 @@ library(metatools)
 library(datasetjson)
 
 ## Load datasets ------------
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
-adae <- read_dataset_json(file.path(path$adam, "adae.json"), decimals_as_floats = TRUE)
-ds <- read_dataset_json(file.path(path$sdtm, "ds.json"), decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
+adae <- read_dataset_json(file.path(path$adam, "adae.json"))
+ds <- read_dataset_json(file.path(path$sdtm, "ds.json"))
 
 ## Load dataset specs -----------
 # Very noisy function - remove suppress if you want to see warnings

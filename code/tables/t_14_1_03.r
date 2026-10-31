@@ -32,7 +32,7 @@ convert_blanks_to_na_local <- function(df) {
 }
 
 adsl <- read_dataset_json(
-  file.path(path$adam, "adsl.json"),
+  file.path(path$adam, "adsl.json")
 ) %>%
   convert_blanks_to_na_local() %>%
   rename_with(tolower) %>%
