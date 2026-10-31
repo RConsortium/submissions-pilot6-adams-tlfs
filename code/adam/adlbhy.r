@@ -34,13 +34,10 @@ datasets <- map(
 list2env(datasets, envir = .GlobalEnv)
 
 # Metadata ----------------------------------------------------------------
-## Very noisy function - remove suppress if you want to see warnings
-adlbhy_spec <- suppressWarnings(
-  spec_to_metacore(
-    file.path(path$adam_reference, "pilot6-specs.xlsx"),
-    where_sep_sheet = FALSE,
-    quiet = TRUE
-  )
+adlbhy_spec <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
+  verbose = "silent"
 ) %>%
   select_dataset("ADLBHY")
 

@@ -30,7 +30,7 @@ qs <- read_dataset_json(file.path(path$sdtm, "qs.json"))
 metacore <- spec_to_metacore(
   file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
-  quiet = TRUE
+  verbose = "silent"
 )
 
 ### Get the specifications for the dataset we are currently building
