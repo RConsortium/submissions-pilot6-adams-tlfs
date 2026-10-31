@@ -20,6 +20,8 @@ library(stringr)
 library(purrr)
 library(datasetjson)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
 # Load Data ---------------------------------------------------------------
 
 dat_to_load <- list(

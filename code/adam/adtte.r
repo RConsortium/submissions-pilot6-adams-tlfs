@@ -18,6 +18,9 @@ library(admiral)
 library(metacore)
 library(metatools)
 library(datasetjson)
+library(xportr)
+
+source(file.path(path$utils, "save_dataset_json.r"))
 
 ## Load datasets ------------
 adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))

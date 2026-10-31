@@ -22,6 +22,8 @@ library(haven)
 library(purrr)
 library(datasetjson)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
 ## Load datasets ------------
 dat_to_load <- list(
   ae = file.path(path$sdtm, "ae.json"),
