@@ -56,12 +56,13 @@ insert_blank_rows_by <- function(df, group_var, insert_before_first = FALSE) {
 
 fmt_pvalue <- function(x, flag_threshold = 0.15) {
   formatted <- ifelse(is.na(x), NA_character_,
-               ifelse(x > 0.99, ">0.99",
-                 formatC(x, digits = 3, format = "f")
-               ))
+    ifelse(x > 0.99, ">0.99",
+      formatC(x, digits = 3, format = "f")
+    )
+  )
   ifelse(!is.na(x) & x < flag_threshold,
     paste0(formatted, "*"),
-    paste0(formatted, "\U2007")  # figure space — same width as *
+    paste0(formatted, "\U2007") # figure space — same width as *
   )
 }
 
@@ -128,16 +129,17 @@ tbl2 <- adae %>%
     digits = everything() ~ list(p = 1),
     overall_row = TRUE,
     label = list(..ard_hierarchical_overall.. = "Any body system")
-  ) 
+  )
 
 tbl <- tbl_merge(
   tbls = list(tbl1, tbl2),
   tab_spanner = FALSE
-) %>% 
-  modify_table_body(
-  ~ .x %>% relocate(stat_1_2, .after = stat_1_1) %>%
-            relocate(stat_2_2, .after = stat_2_1)
 ) %>%
+  modify_table_body(
+    ~ .x %>%
+      relocate(stat_1_2, .after = stat_1_1) %>%
+      relocate(stat_2_2, .after = stat_2_1)
+  ) %>%
   modify_header(
     label ~ "System Organ Class/\nPreferred Term",
     stat_1_1 ~ "\n\n\nn (%)",
@@ -201,29 +203,37 @@ compute_fisher <- function(adae, adsl, arm1, arm2) {
   )
 }
 
-pval_low  <- compute_fisher(adae, adsl, "Placebo", "Xanomeline Low Dose")
+pval_low <- compute_fisher(adae, adsl, "Placebo", "Xanomeline Low Dose")
 pval_high <- compute_fisher(adae, adsl, "Placebo", "Xanomeline High Dose")
 
 tbl_final <- tbl %>%
   modify_table_body(
     ~ .x %>%
-      left_join(pval_low  %>% rename(p_low  = p.value), by = "label") %>%
-      left_join(pval_high %>% rename(p_high = p.value), by = "label")
+      left_join(
+        pval_low %>%
+          rename(p_low = p.value),
+        by = "label"
+      ) %>%
+      left_join(
+        pval_high %>%
+          rename(p_high = p.value),
+        by = "label"
+      )
   ) %>%
-  modify_table_body(~ insert_blank_rows_by(.x,
-     group_var = group1_level, insert_before_first = TRUE)
+  modify_table_body(
+    ~ insert_blank_rows_by(.x, group_var = group1_level, insert_before_first = TRUE)
   ) %>%
   modify_fmt_fun(
-  p_low  ~ fmt_pvalue,
-  p_high ~ fmt_pvalue
-) %>%
+    p_low ~ fmt_pvalue,
+    p_high ~ fmt_pvalue
+  ) %>%
   modify_header(
-    p_low  ~ "Placebo\nvs.\nLow Dose",
+    p_low ~ "Placebo\nvs.\nLow Dose",
     p_high ~ "Placebo\nvs.\nHigh Dose"
   ) %>%
   modify_spanning_header(
     c(p_low, p_high) ~ "Fisher's Exact\np-values"
-  ) 
+  )
 
 tbl <- tbl_final
 # ----------------------------------------------------------------------------
@@ -233,7 +243,7 @@ tbl <- tbl_final
 t_14_5_01_ard <- gather_ard(tbl)
 
 pval_ard <- bind_rows(
-  pval_low  %>% mutate(comparison = "Placebo vs Low Dose"),
+  pval_low %>% mutate(comparison = "Placebo vs Low Dose"),
   pval_high %>% mutate(comparison = "Placebo vs High Dose")
 ) %>%
   transmute(
@@ -258,12 +268,12 @@ saveRDS(t_14_5_01_ard, file.path(path$table_ard, "t_14_5_01.rds"))
 gt_table <-
   tbl %>%
   as_gt() %>%
- cols_width(
-   label ~ pct(20),
-   all_stat_cols() ~ pct(80 / 8),
-   p_low ~ pct(80 / 8),
-   p_high ~ pct(80 / 8)
- ) %>%
+  cols_width(
+    label ~ pct(20),
+    all_stat_cols() ~ pct(80 / 8),
+    p_low ~ pct(80 / 8),
+    p_high ~ pct(80 / 8)
+  ) %>%
   tab_style(
     style = cell_text(align = "center"),
     locations = list(
@@ -287,6 +297,20 @@ gt_table %>%
       fancyrow(left = "Population: Safety Subjects", center = NA, right = NA)
     ),
     footer = fancyfoot(
+      fancyrow(left = paste0(
+        "Note: Treatment emergent events are defined as events",
+        "which start on or after the start of treatment."
+      )),
+      fancyrow(left = "Note: Adverse events are coded using MedDRA."),
+      fancyrow(left = paste0(
+        "Note: Percentages are based on the number of subjects",
+        "in the safety population within each treatment group."
+      )),
+      fancyrow(left = paste0(
+        "Note: P-values are based on Fisher's Exact test for the comparison of placebo versus",
+        "each active treatment group. An asterisk is appended to p-values that are less than 0.15."
+      )),
+      fancyrow(left = "Note: The column [AE] represents the total number of times an event was recorded."),
       fancyrow(left = paste0("Source: ", doc_relative_path()), center = NA, right = doc_datetime())
     ),
     save_object = FALSE
