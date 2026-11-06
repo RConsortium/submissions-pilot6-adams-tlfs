@@ -18,20 +18,20 @@ library(admiral)
 library(metacore)
 library(metatools)
 library(datasetjson)
+library(xportr)
+
+source(file.path(path$utils, "save_dataset_json.r"))
 
 ## Load datasets ------------
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
-adae <- read_dataset_json(file.path(path$adam, "adae.json"), decimals_as_floats = TRUE)
-ds <- read_dataset_json(file.path(path$sdtm, "ds.json"), decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
+adae <- read_dataset_json(file.path(path$adam, "adae.json"))
+ds <- read_dataset_json(file.path(path$sdtm, "ds.json"))
 
 ## Load dataset specs -----------
-# Very noisy function - remove suppress if you want to see warnings
-metacore <- suppressWarnings(
-  spec_to_metacore(
-    file.path(path$adam_reference, "pilot6-specs.xlsx"),
-    where_sep_sheet = FALSE,
-    quiet = TRUE
-  )
+metacore <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
+  verbose = "silent"
 )
 
 ### Get the specifications for the dataset we are currently building

@@ -59,13 +59,13 @@ save_dataset_json <- function(output_dir, dataset, ds_spec, study = NULL) {
     )
 
   oid_cols <- ds_spec$ds_vars %>%
-    select(.data$dataset, .data$variable, .data$key_seq) %>%
+    select(dataset, variable, key_seq) %>%
     left_join(ds_spec$var_spec, by = c("variable")) %>%
-    rename(name = .data$variable, dataType = .data$type, keySequence = .data$key_seq, displayFormat = .data$format) %>%
+    rename(name = variable, dataType = type, keySequence = key_seq, displayFormat = format) %>%
     mutate(itemOID = paste0("IT.", .data$dataset, ".", .data$name)) %>%
     select(
-      .data$itemOID, .data$name, .data$label, .data$dataType,
-      .data$length, .data$keySequence, .data$displayFormat
+      itemOID, name, label, dataType,
+      length, keySequence, displayFormat
     ) %>%
     mutate(
       dataType =

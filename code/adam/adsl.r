@@ -31,7 +31,7 @@ dat_to_load <- c("dm", "ds", "qs", "ex", "qs", "sv", "vs", "sc", "mh")
 
 datasets <- map(
   dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(file.path(path$sdtm, paste0(.x, ".json")), decimals_as_floats = TRUE))
+  ~ convert_blanks_to_na(read_dataset_json(file.path(path$sdtm, paste0(.x, ".json"))))
 ) %>%
   setNames(dat_to_load)
 
@@ -42,7 +42,7 @@ list2env(datasets, envir = .GlobalEnv)
 metacore <- spec_to_metacore(
   file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
-  quiet = TRUE
+  verbose = "silent"
 )
 
 # Get the specifications for the dataset we are currently building

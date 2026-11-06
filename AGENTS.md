@@ -34,7 +34,7 @@ This repository builds ADaM analysis datasets from SDTM Dataset-JSON inputs usin
 
 ### Data I/O conventions
 - Dataset-JSON is the canonical read/write format.
-- Inputs are usually read with `read_dataset_json(..., decimals_as_floats = TRUE)`.
+- Inputs are usually read with `read_dataset_json(...)`.
 - Outputs are written via `save_dataset_json()` utility in `code/utils/save_dataset_json.r`.
 
 ### TLF output conventions (docorator)

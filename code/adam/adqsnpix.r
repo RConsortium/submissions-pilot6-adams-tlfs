@@ -33,7 +33,7 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 metacore <- spec_to_metacore(
   file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
-  quiet = TRUE
+  verbose = "silent"
 )
 
 # Get the specifications for the dataset we are currently building
@@ -52,7 +52,7 @@ dat_to_load <- list(
 
 # Load datasets using map and convert blanks to NA
 purrr::iwalk(dat_to_load, \(file_path, var_name) {
-  raw_data <- read_dataset_json(file_path, decimals_as_floats = TRUE)
+  raw_data <- read_dataset_json(file_path)
   assign(var_name, raw_data, envir = .GlobalEnv)
   message(paste("Assigned variable '", var_name, "' to .GlobalEnv"))
 })
