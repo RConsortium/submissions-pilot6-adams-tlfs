@@ -148,10 +148,16 @@ t_14_4_01 <- tbl_merge(
   modify_table_body(
     ~ .x %>%
       mutate(
+        label = case_when(
+          row_type == "level" & label == "N Non-missing" ~ "n",
+          TRUE ~ label
+        )
+      ) %>%
+      mutate(
         across(
           all_stat_cols(),
           ~ case_when(
-            row_type == "level" & label == "N Non-missing" ~
+            row_type == "level" & label == "n" ~
               paste0(.x, "\u2007\u2007\u2007"),
             row_type == "level" & label != "SD" ~
               paste0(.x, "\u2007"),
