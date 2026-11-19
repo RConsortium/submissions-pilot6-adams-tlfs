@@ -109,7 +109,7 @@ safety_summary <- adsl_safety %>%
     missing = "no"
   ) %>%
   modify_header(label = "") %>%
-  modify_header(all_stat_cols() ~ "**{level}**  \n(N={n})") %>%
+  modify_header(all_stat_cols() ~ "**{level}**  \n**(N={n})**") %>%
   remove_footnote_header(columns = all_stat_cols())
 
 # Calculate exposure summaries for completers
@@ -192,8 +192,8 @@ gt_table <- t_14_4_01 %>%
     locations = cells_column_labels(columns = everything())
   ) %>%
   tab_header(
-    title = "Table 14-4.01",
-    subtitle = "Summary of Planned Exposure to Study Drug, as of End of Study"
+    title = gt::md("**Table 14-4.01**"),
+    subtitle = gt::md("**Summary of Planned Exposure to Study Drug, as of End of Study**")
   )
 
 # Render the review PDF
