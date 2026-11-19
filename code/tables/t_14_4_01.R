@@ -176,6 +176,10 @@ saveRDS(
 # Format the table
 gt_table <- t_14_4_01 %>%
   as_gt(auto_align = FALSE) %>%
+  cols_width(
+    label ~ "34%",
+    all_stat_cols() ~"11%"
+  ) %>%
   cols_align(align = "right", columns = all_stat_cols()) %>%
   tab_style(
     style = cell_text(align = "center"),
@@ -204,6 +208,7 @@ gt_table %>%
         right = doc_datetime()
       )
     ),
-    save_object = FALSE
+    save_object = FALSE,
+    tbl_scale = FALSE
   ) %>%
   render_pdf(path$table_output)
