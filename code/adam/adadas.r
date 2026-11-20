@@ -21,16 +21,18 @@ library(xportr)
 library(datasetjson)
 library(purrr)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
 ## Load datasets ------------
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
-dm <- read_dataset_json(file.path(path$sdtm, "dm.json"), decimals_as_floats = TRUE)
-qs <- read_dataset_json(file.path(path$sdtm, "qs.json"), decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
+dm <- read_dataset_json(file.path(path$sdtm, "dm.json"))
+qs <- read_dataset_json(file.path(path$sdtm, "qs.json"))
 
 ## Load dataset specs -----------
 metacore <- spec_to_metacore(
   file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
-  quiet = TRUE
+  verbose = "silent"
 )
 
 ### Get the specifications for the dataset we are currently building

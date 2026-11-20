@@ -22,6 +22,8 @@ library(haven)
 library(purrr)
 library(datasetjson)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
 ## Load datasets ------------
 dat_to_load <- list(
   ae = file.path(path$sdtm, "ae.json"),
@@ -31,7 +33,7 @@ dat_to_load <- list(
 
 datasets <- map(
   dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
+  ~ convert_blanks_to_na(read_dataset_json(.x))
 )
 
 list2env(datasets, envir = .GlobalEnv)
@@ -40,7 +42,7 @@ list2env(datasets, envir = .GlobalEnv)
 metacore <- spec_to_metacore(
   file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
-  quiet = TRUE
+  verbose = "silent"
 )
 
 ### Get the specifications for the dataset we are currently building

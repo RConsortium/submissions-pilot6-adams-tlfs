@@ -33,7 +33,7 @@ source(file.path("code", "utils", "save_dataset_json.r"))
 metacore <- spec_to_metacore(
   file.path(path$adam_reference, "pilot6-specs.xlsx"),
   where_sep_sheet = FALSE,
-  quiet = TRUE
+  verbose = "silent"
 )
 
 # Get the specifications for the dataset we are currently building
@@ -90,9 +90,9 @@ param_lookup <- paramcd_codelist %>%
 # LOAD DATASETS
 # ----------------------------------------------------------------------------
 
-vs <- read_dataset_json(file.path(path$sdtm, "vs.json"), decimals_as_floats = TRUE)
+vs <- read_dataset_json(file.path(path$sdtm, "vs.json"))
 
-adsl <- read_dataset_json(file.path(path$adam, "adsl.json"), decimals_as_floats = TRUE)
+adsl <- read_dataset_json(file.path(path$adam, "adsl.json"))
 
 # ----------------------------------------------------------------------------
 # DERIVATIONS

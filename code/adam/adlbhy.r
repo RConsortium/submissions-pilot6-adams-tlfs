@@ -20,6 +20,8 @@ library(stringr)
 library(purrr)
 library(datasetjson)
 
+source(file.path(path$utils, "save_dataset_json.r"))
+
 # Load Data ---------------------------------------------------------------
 
 dat_to_load <- list(
@@ -28,19 +30,16 @@ dat_to_load <- list(
 
 datasets <- map(
   dat_to_load,
-  ~ convert_blanks_to_na(read_dataset_json(.x, decimals_as_floats = TRUE))
+  ~ convert_blanks_to_na(read_dataset_json(.x))
 )
 
 list2env(datasets, envir = .GlobalEnv)
 
 # Metadata ----------------------------------------------------------------
-## Very noisy function - remove suppress if you want to see warnings
-adlbhy_spec <- suppressWarnings(
-  spec_to_metacore(
-    file.path(path$adam_reference, "pilot6-specs.xlsx"),
-    where_sep_sheet = FALSE,
-    quiet = TRUE
-  )
+adlbhy_spec <- spec_to_metacore(
+  file.path(path$adam_reference, "pilot6-specs.xlsx"),
+  where_sep_sheet = FALSE,
+  verbose = "silent"
 ) %>%
   select_dataset("ADLBHY")
 
