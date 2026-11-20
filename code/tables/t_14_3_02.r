@@ -1,5 +1,5 @@
 #************************************************************************
-# Purpose:     Generate Table 14.3.02 - Primary Endpoint Analysis: CIBIC+ - Summary at Week 24/Week 8/ Week 16 - LOCF
+# Purpose:     Generate Table 14.3.02/04/06 - Endpoint Analysis: CIBIC+ - Summary at Week 24/Week 8/ Week 16 - LOCF
 # Input:       ADCIBC
 # Output:      t14_3_02.pdf, t14_3_04.pdf, t14_3_06.pdf
 #************************************************************************
