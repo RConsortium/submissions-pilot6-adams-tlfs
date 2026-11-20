@@ -184,7 +184,7 @@ gt_table <- t_14_4_01 %>%
   as_gt(auto_align = FALSE) %>%
   cols_width(
     label ~ "34%",
-    all_stat_cols() ~"11%"
+    all_stat_cols() ~ "11%"
   ) %>%
   cols_align(align = "right", columns = all_stat_cols()) %>%
   tab_style(
