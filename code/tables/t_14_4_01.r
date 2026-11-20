@@ -134,7 +134,7 @@ completer_summary <- adsl_completers %>%
     missing = "no"
   ) %>%
   modify_header(label = "") %>%
-  modify_header(all_stat_cols() ~ "**{level}**  \n(N={n})") %>%
+  modify_header(all_stat_cols() ~ "**{level}**  \n**(N={n})**") %>%
   remove_footnote_header(columns = all_stat_cols())
 
 # Combine population panels
